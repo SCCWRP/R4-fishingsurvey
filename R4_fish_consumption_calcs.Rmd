@@ -15,16 +15,65 @@ output:
 knitr::opts_chunk$set(echo = TRUE)
 
 ```
+
 ## Install libraries
-```{r message=FALSE, warning=FALSE}
+```{r message=TRUE}
 library(tidyverse)
 library(readxl)
+library(ggplot2)
+```
+## Import data
+```{r }
+
+path <- c("//pacific/Toxicology/tox/Risk Assessment/Region4_Urban lakes fishers survey/Survey data/Data entry/Working_FisherSurveryDatabase.xlsm")
+
+excel_sheets(path)
+
+fisherdb <-read_excel(path, sheet = "Interviews")
+
+colnames<-colnames(fisherdb)
+colnames
+
+#Replace spaces with underscores in column names
+names(fisherdb)
+names(fisherdb) <- gsub(" ", "_", names(fisherdb))
+names(fisherdb)
+
 ```
 
-## Import data
+#Fish consumption analysis
+```{r}
 
-```{r cars}
-summary(cars)
+
+
+```
+
+
+##Age histogram
+
+```{r }
+fisherdb <- fisherdb %>%
+  mutate(Age= as.numeric(Age))
+summary(fisherdb$Age >100)
+
+fisherdb <- fisherdb %>%
+  mutate(`Observed_Gender` = case_when(
+    `Observed_Gender` %in% c("unknown") ~ "Male",
+    TRUE ~ `Observed_Gender`
+  ))
+
+ggplot(fisherdb, aes(x = Age, fill = Observed_Gender)) +
+  geom_histogram(binwidth = 10, color = "black") +
+  labs(
+    title = "",
+    x = "Age",
+    y = "Frequency",
+    fill = "Gender"
+  ) +
+  scale_fill_manual(values = c("#D47E6A","#248B87","gray"))+
+  theme(panel.background =element_blank(),
+        axis.line = element_line(color = "black"),
+        legend.position = "top",)
 
 ```
 

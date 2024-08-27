@@ -23,7 +23,7 @@ library(readxl)
 library(ggplot2)
 ```
 ## Import data
-```{r }
+```{r ,include=FALSE}
 
 path <- c("//pacific/Toxicology/tox/Risk Assessment/Region4_Urban lakes fishers survey/Survey data/Data entry/Working_FisherSurveryDatabase.xlsm")
 
@@ -35,19 +35,263 @@ colnames<-colnames(fisherdb)
 colnames
 
 #Replace spaces with underscores in column names
-names(fisherdb)
 names(fisherdb) <- gsub(" ", "_", names(fisherdb))
 names(fisherdb)
 
+#Convert to numeric / factor
+fisherdb <- fisherdb %>%
+  mutate(across(c(`Past_catches:_Rainbow_Trout,_times_eaten`, 
+                  `Past_catches:_Catfish,_times_eaten`, 
+                  `Past_catches:_Bluegill,_times_eaten`,
+                  `Past_catches:_Common_Carp,_times_eaten`,
+                  `Past_catches:_Bass,_times_eaten`,
+                  `Past_catches:_Crappie,_times_eaten`,
+                  `Past_catches:_Tilapia,_times_eaten`,
+                  `Past_catches:_other,_times_eaten`,
+                  
+                  `Past_catches:_Rainbow_Trout,_amount_eaten`,
+                  `Past_catches:_Catfish,_amount_eaten`,
+                  `Past_catches:_Blue_gill,_amount_eaten`,
+                  `Past_catches:_Common_Carp,_amount_eaten`,
+                  `Past_catches:_Bass,_amount_eaten`,
+                  `Past_catches:_Crappie,_amount_eaten`,
+                  `Past_catches:_Tilapia,_amount_eaten`,
+                  `Past_catches:_other,_amount_eaten`,
+                  
+                  `Age_(Person_1)`,
+                  `Age_(Person_2)`,
+                  `Age_(Person_3)`,
+                  `Age_(Person_4)`,
+                  Age
+                  
+                  ), as.numeric)) %>%
+  
+ mutate(across(c( Observed_Gender
+ ),as.factor))
+
+
 ```
 
-#Fish consumption analysis
+#Identify unique lakes
 ```{r}
+#using unlist and strsplit1
+lake_names <- unlist(strsplit(c(fisherdb$Likely_Fishing_Location_1, 
+                fisherdb$Likely_Fishing_Location_2, 
+                fisherdb$Likely_Fishing_Location_3,
+                fisherdb$`Past_catches:_Rainbow_Trout,_Where`,
+                fisherdb$`Past_catches:_Catfish,_where`,
+                fisherdb$`Past_catches:_Bluegill,_where`,
+                fisherdb$`Past_catches:_Common_Carp,_where`,
+                fisherdb$`Past_catches:__Bass,_where`,
+                fisherdb$`Past_catches:_Crappie,_where`,
+                fisherdb$`Past_catches:_Tilapia,_where`,
+                fisherdb$`Past_catches:_other,_where`),","))
+
+lake_names <-trimws(lake_names)
+unique_lake_names <- unique(lake_names)
+write.csv(unique_lake_names,"unique_lake_names.csv", row.names = FALSE)
+
+##Names and counties were added to "unique_lake_names.csv" -- now import this dataset
+
+lookup_lakes_counties <- read.csv("unique_lake_names_key.csv")
+
+# #update fisherdb lake names using key
+# 
+# summary(as.factor(fisherdb$`Past_catches:_Bluegill,_times_eaten,_where`))
+
+```
+
+
+
+#Calculate consumption rate
+```{r}
+##Subset to only fish consumers (<4 weeks)
+consumers <- fisherdb %>% filter(
+                  `Past_catches:_Rainbow_Trout,_times_eaten` >0 |
+                  `Past_catches:_Catfish,_times_eaten`>0 |
+                  `Past_catches:_Bluegill,_times_eaten`>0|
+                  `Past_catches:_Common_Carp,_times_eaten`>0 |
+                  `Past_catches:_Bass,_times_eaten`>0 |
+                  `Past_catches:_Crappie,_times_eaten`>0 |
+                  `Past_catches:_Tilapia,_times_eaten`>0|
+                  `Past_catches:_other,_times_eaten`>0
+)
+
+###Calculate consumption
+
+consumers <- consumers %>%
+  mutate(
+    rainbow_trout_g_day = na_if(
+      ((`Past_catches:_Rainbow_Trout,_times_eaten` * `Past_catches:_Rainbow_Trout,_amount_eaten` * 227) / 28), 0),
+    catfish_g_day = na_if(
+      ((`Past_catches:_Catfish,_times_eaten` * `Past_catches:_Catfish,_amount_eaten` * 227) / 28), 0),
+    bluegill_g_day = na_if(
+      ((`Past_catches:_Bluegill,_times_eaten` * `Past_catches:_Blue_gill,_amount_eaten` * 227) / 28), 0),
+    carp_g_day = na_if(
+      ((`Past_catches:_Common_Carp,_times_eaten` * `Past_catches:_Common_Carp,_amount_eaten` * 227) / 28), 0),
+    bass_g_day = na_if(
+      ((`Past_catches:_Bass,_times_eaten` * `Past_catches:_Bass,_amount_eaten` * 227) / 28), 0),
+    crappie_g_day = na_if(
+      ((`Past_catches:_Crappie,_times_eaten` * `Past_catches:_Crappie,_amount_eaten` * 227) / 28), 0),
+    tilapia_g_day = na_if(
+      ((`Past_catches:_Tilapia,_times_eaten` * `Past_catches:_Tilapia,_amount_eaten` * 227) / 28), 0),
+    other_g_day = na_if(
+      ((`Past_catches:_other,_times_eaten` * `Past_catches:_other,_amount_eaten` * 227) / 28), 0)
+  )
+
+    
+ggplot(consumers, aes(x= `Past_catches:_Rainbow_Trout,_times_eaten,_where`, y=rainbow_trout_g_day))+
+  geom_point()+  coord_flip()
+ggplot(consumers, aes(x= `Past_catches:_Catfish,_times_eaten,_where`, y=catfish_g_day))+
+  geom_point()+coord_flip()
+ggplot(consumers, aes(x= `Past_catches:_Bluegill,_times_eaten,_where`, y=bluegill_g_day))+
+  geom_point()+coord_flip()
+ggplot(consumers, aes(x= `Past_catches:_Common_Carp,_times_eaten,_where`, y=carp_g_day))+
+  geom_point()+coord_flip()
+ggplot(consumers, aes(x= `Past_catches:_Bass,_times_eaten,_where`, y=bass_g_day))+
+  geom_point()+coord_flip()
+ggplot(consumers, aes(x= `Past_catches:_Crappie,_times_eaten,_where`, y=crappie_g_day))+
+  geom_point()+coord_flip()
+ggplot(consumers, aes(x= `Past_catches:_Tilapia,_times_eaten,_where`, y=tilapia_g_day))+
+  geom_point()+coord_flip()
+ggplot(consumers, aes(x= `Past_catches:_other,_where`, y=other_g_day))+
+  geom_point()+coord_flip()
 
 
 
 ```
+#Compare consumption rate to OEHHA thresholds
+```{r}
+##import thresholds
+path <- "//pacific/Toxicology/tox/Risk Assessment/Region4_Urban lakes fishers survey/Resources/OEHHA consumption advisories/OEHHA_consumption_advisories.xlsx"
 
+excel_sheets(path)
+advisories <-read_excel(path, sheet = "Lake advisories")
+advisories <- advisories %>% mutate(across(
+  c(Lake, Fish), as.factor)
+)
+statewide_adv <- advisories %>% filter(
+  Lake == "Statewide")%>%
+  select(Lake, Fish, threshold_g_day_child,threshold_g_day_women18_49,threshold_g_day_women50,threshold_g_day_men18)
+
+rt_adv <- statewide_adv %>% filter(
+  Fish=="Rainbow trout")
+crappie_adv <- statewide_adv %>% filter(
+  Fish=="Crappie species")
+sunfish_adv <- statewide_adv %>% filter(
+  Fish=="Sunfish species")
+blackbass_adv <- statewide_adv %>% filter(
+  Fish=="Black bass species")
+catfish_adv <- statewide_adv %>% filter(
+  Fish=="Catfish species")
+carp_adv <- statewide_adv %>% filter(
+  Fish=="Common carp")
+
+##Calculate threshold exceedance
+#rainbow trout 
+consumers <- consumers %>%
+  mutate(
+    rainbow_trout_threshold = case_when(
+      Age < 18 ~ rt_adv$threshold_g_day_child,
+      Observed_Gender == "Female" & Age >= 18 & Age <=49 ~ rt_adv$threshold_g_day_women18_49,
+      Observed_Gender == "Female" & Age >50 ~ rt_adv$threshold_g_day_women50,
+      Observed_Gender == "Male" & Age > 18 ~ rt_adv$threshold_g_day_men18,
+    ))
+consumers <- consumers %>%
+  mutate(
+    rt_exceed_thresh = rainbow_trout_threshold < rainbow_trout_g_day
+  )
+
+ggplot(consumers, aes(x= `Past_catches:_Rainbow_Trout,_times_eaten,_where`, y=rainbow_trout_g_day))+
+  geom_point(aes(color = rt_exceed_thresh))+
+  coord_flip()
+datacheck <- consumers %>%
+  select( c(Age,Observed_Gender,rainbow_trout_threshold, rainbow_trout_g_day ,rt_exceed_thresh))
+
+#catfish 
+consumers <- consumers %>%
+  mutate(
+    catfish_threshold = case_when(
+      Age < 18 ~ catfish_adv$threshold_g_day_child,
+      Observed_Gender == "Female" & Age >= 18 & Age <=49 ~ catfish_adv$threshold_g_day_women18_49,
+      Observed_Gender == "Female" & Age >50 ~ catfish_adv$threshold_g_day_women50,
+      Observed_Gender == "Male" & Age > 18 ~ catfish_adv$threshold_g_day_men18,
+    ))
+consumers <- consumers %>%
+  mutate(
+    catfish_exceed_thresh = catfish_threshold < catfish_g_day
+  )
+
+ggplot(consumers, aes(x= `Past_catches:_Catfish,_times_eaten,_where`, y=catfish_g_day))+
+  geom_point(aes(color = catfish_exceed_thresh))+
+  coord_flip()
+
+datacheck <- consumers %>%
+  select( c(Age,Observed_Gender,catfish_threshold, catfish_g_day ,catfish_exceed_thresh))
+
+#bluegill
+consumers <- consumers %>%
+  mutate(
+    bluegill_threshold = case_when(
+      Age < 18 ~ sunfish_adv$threshold_g_day_child,
+      Observed_Gender == "Female" & Age >= 18 & Age <=49 ~ sunfish_adv$threshold_g_day_women18_49,
+      Observed_Gender == "Female" & Age >50 ~ sunfish_adv$threshold_g_day_women50,
+      Observed_Gender == "Male" & Age > 18 ~ sunfish_adv$threshold_g_day_men18,
+    ))
+consumers <- consumers %>%
+  mutate(
+    bluegill_exceed_thresh = bluegill_threshold < bluegill_g_day
+  )
+
+ggplot(consumers, aes(x= `Past_catches:_Bluegill,_times_eaten,_where`, y=bluegill_g_day))+
+  geom_point(aes(color = bluegill_exceed_thresh))+
+  coord_flip()
+
+datacheck <- consumers %>%
+  select( c(Age,Observed_Gender,bluegill_threshold, bluegill_g_day ,bluegill_exceed_thresh))
+
+#Black bass
+consumers <- consumers %>%
+  mutate(
+    blackbass_threshold = case_when(
+      Age < 18 ~ blackbass_adv$threshold_g_day_child,
+      Observed_Gender == "Female" & Age >= 18 & Age <=49 ~ blackbass_adv$threshold_g_day_women18_49,
+      Observed_Gender == "Female" & Age >50 ~ blackbass_adv$threshold_g_day_women50,
+      Observed_Gender == "Male" & Age > 18 ~ blackbass_adv$threshold_g_day_men18,
+    ))
+consumers <- consumers %>%
+  mutate(
+    blackbass_exceed_thresh = blackbass_threshold < bass_g_day
+  )
+
+ggplot(consumers, aes(x= `Past_catches:_Bass,_times_eaten,_where`, y=bass_g_day))+
+  geom_point(aes(color = blackbass_exceed_thresh))+
+  coord_flip()
+
+datacheck <- consumers %>%
+  select( c(Age,Observed_Gender,blackbass_threshold, bass_g_day ,blackbass_exceed_thresh))
+
+#Carp
+consumers <- consumers %>%
+  mutate(
+    carp_threshold = case_when(
+      Age < 18 ~ carp_adv$threshold_g_day_child,
+      Observed_Gender == "Female" & Age >= 18 & Age <=49 ~  carp_adv$threshold_g_day_women18_49,
+      Observed_Gender == "Female" & Age >50 ~  carp_adv$threshold_g_day_women50,
+      Observed_Gender == "Male" & Age > 18 ~  carp_adv$threshold_g_day_men18,
+    ))
+consumers <- consumers %>%
+  mutate(
+    carp_exceed_thresh = carp_threshold < carp_g_day
+  )
+
+ggplot(consumers, aes(x= `Past_catches:_Common_Carp,_times_eaten,_where`, y=carp_g_day))+
+  geom_point(aes(color = carp_exceed_thresh))+
+  coord_flip()
+
+datacheck <- consumers %>%
+  select( c(Age,Observed_Gender,carp_threshold, carp_g_day ,carp_exceed_thresh))
+```
 
 ##Age histogram
 

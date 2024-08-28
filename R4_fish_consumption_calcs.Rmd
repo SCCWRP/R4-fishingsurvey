@@ -160,6 +160,10 @@ ggplot(consumers, aes(x= `Past_catches:_other,_where`, y=other_g_day))+
 
 
 ```
+###Test- create loop for OEHHA thresholds
+
+
+
 #Compare consumption rate to OEHHA thresholds
 ```{r}
 ##import thresholds

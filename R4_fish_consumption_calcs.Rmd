@@ -93,7 +93,7 @@ write.csv(unique_lake_names,"unique_lake_names.csv", row.names = FALSE)
 
 ##Names and counties were added to "unique_lake_names.csv" -- now import this dataset
 
-lookup_lakes_counties <- read.csv("unique_lake_names_key.csv")
+unique_lake_names_key <- read.csv("unique_lake_names_key.csv")
 
 # #update fisherdb lake names using key
 # 
@@ -154,7 +154,7 @@ ggplot(consumers, aes(x= `Past_catches:_Crappie,_times_eaten,_where`, y=crappie_
   geom_point()+coord_flip()
 ggplot(consumers, aes(x= `Past_catches:_Tilapia,_times_eaten,_where`, y=tilapia_g_day))+
   geom_point()+coord_flip()
-ggplot(consumers, aes(x= `Past_catches:_other,_where`, y=other_g_day))+
+ggplot(consumers, aes(x= `Past_catches:_Other,_times_eaten,_where`, y=other_g_day))+
   geom_point()+coord_flip()
 
 
@@ -164,7 +164,7 @@ ggplot(consumers, aes(x= `Past_catches:_other,_where`, y=other_g_day))+
 
 
 
-#Compare consumption rate to OEHHA thresholds
+#Compare consumption rate to statewide OEHHA thresholds
 ```{r}
 ##import thresholds
 path <- "//pacific/Toxicology/tox/Risk Assessment/Region4_Urban lakes fishers survey/Resources/OEHHA consumption advisories/OEHHA_consumption_advisories.xlsx"
@@ -172,8 +172,132 @@ path <- "//pacific/Toxicology/tox/Risk Assessment/Region4_Urban lakes fishers su
 excel_sheets(path)
 advisories <-read_excel(path, sheet = "Lake advisories")
 advisories <- advisories %>% mutate(across(
-  c(Lake, Fish), as.factor)
+  c(lake, fish, county), as.factor)
 )
+
+
+
+
+###Convert to triples
+consumers2 <- consumers %>% 
+  mutate(rowID = 1:nrow(.))%>%
+  mutate(across(everything(),as.character))%>%
+  pivot_longer(!rowID,names_to = "column_name", values_to = "values")
+
+##Clean lake, fish, gender, age
+consumers4 <- consumers2 %>%
+  mutate(column_name = ifelse(column_name == "Observed_Gender", "Gender", column_name))
+
+##Create columns in "consumers" Gender, Age, Lake 1, Fish 1, Lake x, Fish x. 
+
+
+##Create columns in "advisories Gender, Age, Lake, Fish
+
+##Convert back to tidy
+consumers3 <- consumers2 %>%
+  pivot_wider(names_from = "column_name", values_from = "values")
+
+
+
+
+###Create new column that counts the number of lakes that each person eats each fish in
+
+consumers <- consumers %>%
+  mutate(
+    rainbow_trout_where_count = str_count(`Past_catches:_Rainbow_Trout,_times_eaten,_where`, ",") + 1,
+    catfish_where_count = str_count(`Past_catches:_Catfish,_times_eaten,_where`, ",") + 1,
+    bluegill_where_count = str_count(`Past_catches:_Bluegill,_times_eaten,_where`, ",") + 1,
+    common_carp_where_count = str_count(`Past_catches:_Common_Carp,_times_eaten,_where`, ",") + 1,
+    bass_where_count = str_count(`Past_catches:_Bass,_times_eaten,_where`, ",") + 1,
+    crappie_where_count = str_count(`Past_catches:_Crappie,_times_eaten,_where`, ",") + 1,
+    tilapia_where_count = str_count(`Past_catches:_Tilapia,_times_eaten,_where`, ",") + 1,
+    other_fish_where_count = str_count(`Past_catches:_Other,_times_eaten,_where`, ",") + 1
+  )
+
+##Check that counts are correctly attributed
+
+datacheck <- consumers %>% select(
+  (c( `Past_catches:_Rainbow_Trout,_times_eaten,_where`,
+      rainbow_trout_where_count,
+  `Past_catches:_Catfish,_times_eaten,_where`,
+  catfish_where_count,
+  `Past_catches:_Bluegill,_times_eaten,_where`,
+    bluegill_where_count,
+  `Past_catches:_Common_Carp,_times_eaten,_where`,
+   common_carp_where_count,
+  `Past_catches:_Bass,_times_eaten,_where`,
+   bass_where_count,
+  `Past_catches:_Crappie,_times_eaten,_where`,
+     crappie_where_count,
+  `Past_catches:_Tilapia,_times_eaten,_where`,
+    tilapia_where_count,
+  `Past_catches:_Other,_times_eaten,_where`,
+    other_fish_where_count
+)))
+
+##Separate lakes in times_eaten_where into separate columns
+consumers_long <- consumers %>%
+  mutate(rowID = 1:nrow(.))%>%
+  # Step 1: Gather the relevant columns into long format
+  pivot_longer(
+    cols = starts_with("Past_catches:") & ends_with("times_eaten,_where"),
+    names_to = "Catches_Info",
+    values_to = "Lakes"
+  ) %>%
+  # Step 2: Separate the lake names into individual rows
+  separate_rows(Lakes, sep = ",") %>%
+  mutate(Catches_Info = gsub("(Past_catches:_)|(,.*)", "", Catches_Info)) %>%
+  mutate(Catches_Info = gsub("_", " ", Catches_Info)) %>%
+  mutate(Lakes = trimws(Lakes))%>%
+  # Step 3: Select the columns to keep
+  select(rowID, Age, Observed_Gender, Catches_Info, Lakes)
+
+##Take2
+
+consumers_long <- consumers %>%
+  mutate(rowID = 1:nrow(.))%>%
+  mutate(across(matches("Past_catches:.*times_eaten$"),as.character))%>%
+  # Step 1: Gather the relevant columns into long format
+  pivot_longer(
+    cols = matches("Past_catches:.*times_eaten,_where|Past_catches:.*times_eaten$"),
+    names_to = "Catches_Info",
+    values_to = "Values"
+  ) %>%
+  # Step 2: Separate the lake names into individual rows and handle Time Eaten
+ # mutate(Catches_Info = gsub("(Past_catches:_)|(,.*)", "", Catches_Info)) %>%
+ # mutate(Catches_Info = gsub("_", " ", Catches_Info)) %>%
+  
+ separate(Catches_Info, into = c("Catches_Info", "Suffix"), sep = "(_where|_eaten)$", remove = FALSE) %>%
+  mutate(
+    Time_Eaten = if_else(Suffix == "_eaten", Values, NA_character_),
+    Lakes = if_else(Suffix == "_where", Values, NA_character_)
+  ) %>%
+  # Step 3: Remove unnecessary columns and rows with NA
+  select(rowID, Age, Observed_Gender, Catches_Info, Lakes, Time_Eaten) 
+#%>%  filter(!is.na(Lakes)) 
+  #%>% separate_rows(Lakes, sep = ",")
+
+
+###
+
+consumers <- consumers %>%
+  separate (`Past_catches:_Rainbow_Trout,_times_eaten,_where`,
+            into = c("RT_lake1", "RT_lake2", "RT_lake3", "RT_lake4"),
+            sep = ",",
+            remove = FALSE)
+
+
+datacheck <- consumers %>% select(c(`Past_catches:_Rainbow_Trout,_times_eaten,_where`, RT_lake1, RT_lake2, RT_lake3, RT_lake4))
+
+
+consumers <- consumers %>% 
+  
+
+###
+
+
+
+
 statewide_adv <- advisories %>% filter(
   Lake == "Statewide")%>%
   select(Lake, Fish, threshold_g_day_child,threshold_g_day_women18_49,threshold_g_day_women50,threshold_g_day_men18)
@@ -181,7 +305,7 @@ statewide_adv <- advisories %>% filter(
 rt_adv <- statewide_adv %>% filter(
   Fish=="Rainbow trout")
 crappie_adv <- statewide_adv %>% filter(
-  Fish=="Crappie species")
+  Fish=="Crappie species")4
 sunfish_adv <- statewide_adv %>% filter(
   Fish=="Sunfish species")
 blackbass_adv <- statewide_adv %>% filter(

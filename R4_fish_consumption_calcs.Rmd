@@ -99,6 +99,11 @@ unique_lake_names_key <- read.csv("unique_lake_names_key.csv")
 # 
 # summary(as.factor(fisherdb$`Past_catches:_Bluegill,_times_eaten,_where`))
 
+##Join lakes & key to identify if any missed
+
+df_unique_lake_names <- as.data.frame(unique_lake_names)
+anti_join_lakes <- anti_join(df_unique_lake_names, unique_lake_names_key, by=c("unique_lake_names" = "original_name"))
+
 ```
 
 
@@ -177,63 +182,63 @@ advisories <- advisories %>% mutate(across(
 
 
 
-
-###Convert to triples
-consumers2 <- consumers %>% 
-  mutate(rowID = 1:nrow(.))%>%
-  mutate(across(everything(),as.character))%>%
-  pivot_longer(!rowID,names_to = "column_name", values_to = "values")
-
-##Clean lake, fish, gender, age
-consumers4 <- consumers2 %>%
-  mutate(column_name = ifelse(column_name == "Observed_Gender", "Gender", column_name))
-
-##Create columns in "consumers" Gender, Age, Lake 1, Fish 1, Lake x, Fish x. 
-
-
-##Create columns in "advisories Gender, Age, Lake, Fish
-
-##Convert back to tidy
-consumers3 <- consumers2 %>%
-  pivot_wider(names_from = "column_name", values_from = "values")
+# 
+# ###Convert to triples
+# consumers2 <- consumers %>% 
+#   mutate(rowID = 1:nrow(.))%>%
+#   mutate(across(everything(),as.character))%>%
+#   pivot_longer(!rowID,names_to = "column_name", values_to = "values")
+# 
+# ##Clean lake, fish, gender, age
+# consumers4 <- consumers2 %>%
+#   mutate(column_name = ifelse(column_name == "Observed_Gender", "Gender", column_name))
+# 
+# ##Create columns in "consumers" Gender, Age, Lake 1, Fish 1, Lake x, Fish x. 
+# 
+# 
+# ##Create columns in "advisories Gender, Age, Lake, Fish
+# 
+# ##Convert back to tidy
+# consumers3 <- consumers2 %>%
+#   pivot_wider(names_from = "column_name", values_from = "values")
 
 
 
 
 ###Create new column that counts the number of lakes that each person eats each fish in
 
-consumers <- consumers %>%
-  mutate(
-    rainbow_trout_where_count = str_count(`Past_catches:_Rainbow_Trout,_times_eaten,_where`, ",") + 1,
-    catfish_where_count = str_count(`Past_catches:_Catfish,_times_eaten,_where`, ",") + 1,
-    bluegill_where_count = str_count(`Past_catches:_Bluegill,_times_eaten,_where`, ",") + 1,
-    common_carp_where_count = str_count(`Past_catches:_Common_Carp,_times_eaten,_where`, ",") + 1,
-    bass_where_count = str_count(`Past_catches:_Bass,_times_eaten,_where`, ",") + 1,
-    crappie_where_count = str_count(`Past_catches:_Crappie,_times_eaten,_where`, ",") + 1,
-    tilapia_where_count = str_count(`Past_catches:_Tilapia,_times_eaten,_where`, ",") + 1,
-    other_fish_where_count = str_count(`Past_catches:_Other,_times_eaten,_where`, ",") + 1
-  )
+# consumers <- consumers %>%
+#   mutate(
+#     rainbow_trout_where_count = str_count(`Past_catches:_Rainbow_Trout,_times_eaten,_where`, ",") + 1,
+#     catfish_where_count = str_count(`Past_catches:_Catfish,_times_eaten,_where`, ",") + 1,
+#     bluegill_where_count = str_count(`Past_catches:_Bluegill,_times_eaten,_where`, ",") + 1,
+#     common_carp_where_count = str_count(`Past_catches:_Common_Carp,_times_eaten,_where`, ",") + 1,
+#     bass_where_count = str_count(`Past_catches:_Bass,_times_eaten,_where`, ",") + 1,
+#     crappie_where_count = str_count(`Past_catches:_Crappie,_times_eaten,_where`, ",") + 1,
+#     tilapia_where_count = str_count(`Past_catches:_Tilapia,_times_eaten,_where`, ",") + 1,
+#     other_fish_where_count = str_count(`Past_catches:_Other,_times_eaten,_where`, ",") + 1
+#   )
 
-##Check that counts are correctly attributed
-
-datacheck <- consumers %>% select(
-  (c( `Past_catches:_Rainbow_Trout,_times_eaten,_where`,
-      rainbow_trout_where_count,
-  `Past_catches:_Catfish,_times_eaten,_where`,
-  catfish_where_count,
-  `Past_catches:_Bluegill,_times_eaten,_where`,
-    bluegill_where_count,
-  `Past_catches:_Common_Carp,_times_eaten,_where`,
-   common_carp_where_count,
-  `Past_catches:_Bass,_times_eaten,_where`,
-   bass_where_count,
-  `Past_catches:_Crappie,_times_eaten,_where`,
-     crappie_where_count,
-  `Past_catches:_Tilapia,_times_eaten,_where`,
-    tilapia_where_count,
-  `Past_catches:_Other,_times_eaten,_where`,
-    other_fish_where_count
-)))
+# ##Check that counts are correctly attributed
+# 
+# datacheck <- consumers %>% select(
+#   (c( `Past_catches:_Rainbow_Trout,_times_eaten,_where`,
+#       rainbow_trout_where_count,
+#   `Past_catches:_Catfish,_times_eaten,_where`,
+#   catfish_where_count,
+#   `Past_catches:_Bluegill,_times_eaten,_where`,
+#     bluegill_where_count,
+#   `Past_catches:_Common_Carp,_times_eaten,_where`,
+#    common_carp_where_count,
+#   `Past_catches:_Bass,_times_eaten,_where`,
+#    bass_where_count,
+#   `Past_catches:_Crappie,_times_eaten,_where`,
+#      crappie_where_count,
+#   `Past_catches:_Tilapia,_times_eaten,_where`,
+#     tilapia_where_count,
+#   `Past_catches:_Other,_times_eaten,_where`,
+#     other_fish_where_count
+# )))
 
 ##Separate lakes in times_eaten_where into separate columns
 
@@ -244,7 +249,7 @@ advisories_long <- advisories %>%
   pivot_longer(
     cols = threshold_g_day_child:threshold_g_day_men18,
     names_to = "column",
-    values_to = "threshold"
+    values_to = "threshold_g_day"
   ) %>%
   mutate(Gender = case_when(
       grepl("child", column) ~ "Child",
@@ -275,7 +280,8 @@ consumers_long <- consumers %>%
   mutate(Lakes = trimws(Lakes))%>%
   # Step 3: Select the columns to keep
   select(rowID, Age, Observed_Gender, Catches_Info, Lakes, starts_with("Past_catches:") & ends_with(",_times_eaten"), starts_with("Past_catches:") & ends_with(",_amount_eaten")) %>%
-  rename(`Past_catches:_Bluegill,_amount_eaten`= `Past_catches:_Blue_gill,_amount_eaten`) %>%
+  rename(`Past_catches:_Bluegill,_amount_eaten`= `Past_catches:_Blue_gill,_amount_eaten`) %>% 
+  ###Calculate consumption rate of each fish at each lake per person
   mutate(daily_intake = case_when(
     Catches_Info == "Rainbow Trout" ~ `Past_catches:_Rainbow_Trout,_times_eaten` * `Past_catches:_Rainbow_Trout,_amount_eaten`,
     Catches_Info == "Catfish" ~ `Past_catches:_Catfish,_times_eaten` * `Past_catches:_Catfish,_amount_eaten`,
@@ -291,7 +297,7 @@ consumers_long <- consumers %>%
   group_by(Catches_Info, rowID) %>%
   mutate(number_lakes = n()) %>%
   ungroup() %>%
-  mutate(daily_intake = daily_intake/number_lakes) %>%
+  mutate(daily_intake = daily_intake/number_lakes) #%>%
   left_join(lookup_lakes_counties %>%
               select(original_name, updated_name, county), by = c("Lakes" = "original_name")) %>%
   mutate(Observed_Gender = as.character(Observed_Gender)) %>%

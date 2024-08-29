@@ -236,6 +236,30 @@ datacheck <- consumers %>% select(
 )))
 
 ##Separate lakes in times_eaten_where into separate columns
+
+advisories_long <- advisories %>%
+   #mutate(rowID = 1:nrow(.))%>%
+  select(-(srv_per_wk_child:child_serv_g), - Source, - Notes) %>%
+  # Step 1: Gather the relevant columns into long format
+  pivot_longer(
+    cols = threshold_g_day_child:threshold_g_day_men18,
+    names_to = "column",
+    values_to = "threshold"
+  ) %>%
+  mutate(Gender = case_when(
+      grepl("child", column) ~ "Child",
+      grepl("women", column) ~ "Female",
+      grepl("men", column) ~ "Male",
+      .default = NA
+  )) %>%
+  mutate(Age = case_when(
+      grepl("_men18", column) ~ ">= 18",
+      grepl("18_49", column) ~ "18 - 49",
+      grepl("50", column) ~ ">= 50",
+      grepl("child", column) ~ "< 18",
+      .default = NA
+  ))
+
 consumers_long <- consumers %>%
   mutate(rowID = 1:nrow(.))%>%
   # Step 1: Gather the relevant columns into long format
@@ -250,10 +274,57 @@ consumers_long <- consumers %>%
   mutate(Catches_Info = gsub("_", " ", Catches_Info)) %>%
   mutate(Lakes = trimws(Lakes))%>%
   # Step 3: Select the columns to keep
-  select(rowID, Age, Observed_Gender, Catches_Info, Lakes)
+  select(rowID, Age, Observed_Gender, Catches_Info, Lakes, starts_with("Past_catches:") & ends_with(",_times_eaten"), starts_with("Past_catches:") & ends_with(",_amount_eaten")) %>%
+  rename(`Past_catches:_Bluegill,_amount_eaten`= `Past_catches:_Blue_gill,_amount_eaten`) %>%
+  mutate(daily_intake = case_when(
+    Catches_Info == "Rainbow Trout" ~ `Past_catches:_Rainbow_Trout,_times_eaten` * `Past_catches:_Rainbow_Trout,_amount_eaten`,
+    Catches_Info == "Catfish" ~ `Past_catches:_Catfish,_times_eaten` * `Past_catches:_Catfish,_amount_eaten`,
+    Catches_Info == "Common Carp" ~ `Past_catches:_Common_Carp,_times_eaten` * `Past_catches:_Common_Carp,_amount_eaten`,
+    Catches_Info == "Crappie" ~ `Past_catches:_Crappie,_times_eaten` * `Past_catches:_Crappie,_amount_eaten`,
+    Catches_Info == "other" ~ `Past_catches:_other,_times_eaten` * `Past_catches:_other,_amount_eaten`,
+    Catches_Info == "Tilapia" ~ `Past_catches:_Tilapia,_times_eaten` * `Past_catches:_Tilapia,_amount_eaten`,
+    Catches_Info == "Bluegill" ~ `Past_catches:_Bluegill,_times_eaten` * `Past_catches:_Bluegill,_amount_eaten`,
+    Catches_Info == "Bass" ~ `Past_catches:_Bass,_times_eaten` * `Past_catches:_Bass,_amount_eaten`,
+    .default = NA
+  )) %>%
+  mutate(daily_intake = (daily_intake * 227)/28) %>%
+  group_by(Catches_Info, rowID) %>%
+  mutate(number_lakes = n()) %>%
+  ungroup() %>%
+  mutate(daily_intake = daily_intake/number_lakes) %>%
+  left_join(lookup_lakes_counties %>%
+              select(original_name, updated_name, county), by = c("Lakes" = "original_name")) %>%
+  mutate(Observed_Gender = as.character(Observed_Gender)) %>%
+  mutate(Observed_Gender = ifelse(Age < 18, "Child", Observed_Gender)) %>%
+  mutate(Age_Category =  case_when(
+    Age < 18 ~ "< 18",
+    Age >= 18 & Observed_Gender == "Male" ~ ">= 18",
+    Age >= 18 & Age < 50 & Observed_Gender == "Female" ~ "18 - 49",
+    Age > 50 & Observed_Gender == "Female" ~ ">= 50",
+    .default = NA
+  )) %>%
+  left_join(advisories_long, by = c("updated_name" = "Lake", 
+                                    "Age_Category" = "Age", 
+                                    "Observed_Gender" = "Gender",
+                                    "Catches_Info" = "Fish"
+                                    ))
+
+#testing matching columns
+unique(advisories_long$Fish)[unique(advisories_long$Fish) %in% unique(consumers_long$Catches_Info)]
+
+#example percent of people at each park exceeding 300 grams per day for any fish
+percent_people <- consumers_long %>%
+  mutate(threshold = 300) %>%
+  mutate(exceeded = daily_intake > threshold) %>%
+  group_by(rowID, updated_name) %>%
+  summarise(any_exceeded = any(exceeded)) %>% #Get a list of which people exceeded a threshold at least once. 
+  ungroup() %>%
+  filter(!is.na(any_exceeded)) %>%
+  group_by(updated_name) %>%
+  summarise(percent_people_exceeding = sum(any_exceeded)/n()) #Count the total number of people and excedences to summarise the final result. 
+
 
 ##Take2
-
 consumers_long <- consumers %>%
   mutate(rowID = 1:nrow(.))%>%
   mutate(across(matches("Past_catches:.*times_eaten$"),as.character))%>%

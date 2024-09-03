@@ -648,12 +648,161 @@ all_lakes_summary_table <- bind_rows(all_summary_table, rt_summary_table, cat_su
 write.csv(all_lakes_summary_table,"consumption_summary.csv", row.names = FALSE)
 ```
 
+##Test data summaries
+####rainbow trout
+```{r}
+
+# List of fish species to analyze
+fish <- list(
+  "all" = c("Rainbow trout", "Catfish", "Sunfish species", "Common carp", "Black bass species", "Crappie species"),
+  "Rainbow trout" = "Rainbow trout",
+  "Catfish" = "Catfish",
+  "Sunfish species" = "Sunfish species",
+  "Common carp" = "Common carp",
+  "Black bass species" = "Black bass species",
+  "Crappie species" = "Crappie"
+)
+
+# Initialize an empty list to store summary tables
+summary_tables <- list()
+
+lakes = "all"
+age = "all"
+
+for (fish in names(fish)) {
+
+###Percent of consumers exceeding threshold
+per_exceed_thresh <- consumers_long %>%
+  group_by(rowID)%>%
+  filter(daily_intake>0)%>%
+  filter(Catches_Info == fish) %>%
+  summarise(any_exceeded=any(exceed_threshold))%>%#Get a list of which people exceeded a threshold at least once. 
+  ungroup()%>%
+  filter(!is.na(any_exceeded))%>%
+  summarise(percent_exceed = round((sum(any_exceeded)/n())*100,1)) %>% #Count the total number of people and excedences to summarise the final result. 
+  mutate(lakes = lakes) %>%  # Add a column for the label
+  mutate(fish = fish) %>%
+  mutate(age = age) %>%
+  select(lakes, age,  fish, everything()) 
+##All consumers consumption rate
+
+all_consumption_rate <- consumers_long %>% 
+  group_by(rowID)%>%
+  filter(daily_intake>0)%>%
+  filter(Catches_Info == fish)%>%
+  summarise(total_daily_intake = sum(daily_intake, na.rm = TRUE))%>%
+  ungroup()
+
+##create summary table
+summary_table <- all_consumption_rate %>%
+  summarise(
+    n=n(),
+    min = round(min(total_daily_intake, na.rm = TRUE),1),
+    max = round(max(total_daily_intake, na.rm = TRUE),1),
+    mean = round(mean(total_daily_intake, na.rm = TRUE),1),
+    median = round(median(total_daily_intake, na.rm = TRUE),1)
+  ) %>%
+  mutate(lakes) %>%  # Add a column for the label
+  mutate(fish) %>%
+  mutate (age)%>%
+  select(lakes, age, fish,everything())  # Move the label column to the front
+  
+summary_table <- left_join(summary_table, per_exceed_thresh)
+
+
+  # Store the summary table in the list
+  summary_tables[[fish]] <- summary_table
+  
+  }
+
+# Combine all summary tables into a single data frame
+all_lakes_summary_table <- bind_rows(summary_tables)
+```
+
+
+##START here - this loop works
+```{r}
+
+# List of fish species to analyze
+fish_species <- list(
+  "all" = c("Rainbow trout", "Catfish", "Sunfish species", "Common carp", "Black bass species", "Crappie species"),
+  "Rainbow trout" = "Rainbow trout",
+  "Catfish" = "Catfish",
+  "Sunfish species" = "Sunfish species",
+  "Common carp" = "Common carp",
+  "Black bass species" = "Black bass species",
+  "Crappie species" = "Crappie"
+)
+
+# Initialize an empty list to store summary tables
+summary_tables <- list()
+
+lakes <- "all"
+age <- "all"
+
+for (fish_name in names(fish_species)) {
+
+  # Select the appropriate species or all species
+  selected_fish <- fish_species[[fish_name]]
+
+  ### Percent of consumers exceeding threshold
+  per_exceed_thresh <- consumers_long %>%
+    group_by(rowID) %>%
+    filter(daily_intake > 0) %>%
+    filter(Catches_Info %in% selected_fish) %>%
+    summarise(any_exceeded = any(exceed_threshold)) %>%
+    ungroup() %>%
+    filter(!is.na(any_exceeded)) %>%
+    summarise(percent_exceed = round((sum(any_exceeded) / n()) * 100, 1)) %>%
+    mutate(lakes = lakes) %>%  # Add a column for the label
+    mutate(fish = fish_name) %>%
+    mutate(age = age) %>%
+    select(lakes, age, fish, everything())
+
+  ### All consumers consumption rate
+  all_consumption_rate <- consumers_long %>%
+    group_by(rowID) %>%
+    filter(daily_intake > 0) %>%
+    filter(Catches_Info %in% selected_fish) %>%
+    summarise(total_daily_intake = sum(daily_intake, na.rm = TRUE)) %>%
+    ungroup()
+
+  ### Create summary table
+  summary_table <- all_consumption_rate %>%
+    summarise(
+      n = n(),
+      min = round(min(total_daily_intake, na.rm = TRUE), 1),
+      max = round(max(total_daily_intake, na.rm = TRUE), 1),
+      mean = round(mean(total_daily_intake, na.rm = TRUE), 1),
+      median = round(median(total_daily_intake, na.rm = TRUE), 1)
+    ) %>%
+    mutate(lakes = lakes) %>%
+    mutate(fish = fish_name) %>%
+    mutate(age = age) %>%
+    select(lakes, age, fish, everything())
+
+  summary_table <- left_join(summary_table, per_exceed_thresh)
+
+  # Store the summary table in the list
+  summary_tables[[fish_name]] <- summary_table
+}
+# Combine all summary tables into a single data frame
+all_lakes_summary_table <- bind_rows(summary_tables)
+
+# Write to CSV
+write.csv(all_lakes_summary_table, "consumption_summary.csv", row.names = FALSE)
+
+
+
+```
+
+
 ##extra code?
 ```{r}
 ##Check if any of this is still necessary
 
 summarize_fish_names <- consumers_long %>%
-  group_by(OEHHA_fish_names)%>%
+  group_by(Catches_Info)%>%
   summarize(min(threshold_g_day, na.rm = TRUE))%>%
   ungroup()
 

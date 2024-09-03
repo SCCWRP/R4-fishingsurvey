@@ -179,7 +179,7 @@ advisories <- advisories %>% mutate(across(
 
 
 ##Separate lakes in times_eaten_where into separate columns
-unique_fish <- unique(consumers_long$Catches_Info)
+#unique_fish <- unique(consumers_long$Catches_Info)
 
 
 advisories_long <- advisories %>%
@@ -338,12 +338,324 @@ consumers_long <- consumers_long %>%
          )%>%
   select(-statewide_column, - statewide_threshold_g_day, -OEHHA_fish_names.x, - OEHHA_fish_names.y)%>%
   mutate(exceed_threshold = daily_intake > threshold_g_day)
+
+##During data clean up - check NAs here. Explore why.
+##Need to check code to make sure things are filtering & calculating as expected
+
+```
+
+##Data summaries
+###All lakes
+####all species
+
+```{r}
+#Summarize consumers at all lakes
+##All species
+###Percent of consumers exceeding threshold
+per_all_exceed_thresh <- consumers_long %>%
+  group_by(rowID)%>%
+  filter(daily_intake>0)%>%
+  summarise(any_exceeded=any(exceed_threshold))%>%#Get a list of which people exceeded a threshold at least once. 
+  ungroup()%>%
+  filter(!is.na(any_exceeded))%>%
+  summarise(percent_exceed = round((sum(any_exceeded)/n())*100,1)) %>% #Count the total number of people and excedences to summarise the final result. 
+  mutate(lakes = "all") %>%  # Add a column for the label
+  mutate(fish = "all") %>%
+  select(lakes, fish, everything()) 
+##All consumers consumption rate
+
+all_consumption_rate <- consumers_long %>% 
+  group_by(rowID)%>%
+  filter(daily_intake>0)%>%
+  summarise(total_daily_intake = sum(daily_intake, na.rm = TRUE))%>%
+  ungroup()
+
+##create summary table
+all_summary_table <- all_consumption_rate %>%
+  summarise(
+    n=n(),
+    min = round(min(total_daily_intake, na.rm = TRUE),1),
+    max = round(max(total_daily_intake, na.rm = TRUE),1),
+    mean = round(mean(total_daily_intake, na.rm = TRUE),1),
+    median = round(median(total_daily_intake, na.rm = TRUE),1)
+  ) %>%
+  mutate(lakes = "all") %>%  # Add a column for the label
+  mutate(fish = "all") %>%
+  select(lakes, fish, everything())  # Move the label column to the front
   
+all_summary_table <- left_join(all_summary_table, per_all_exceed_thresh)
 
-###START HERE
+```
+
+####rainbow trout
+```{r}
+##all lakes rainbow trout
+
+###Percent of consumers exceeding threshold
+per_rt_exceed_thresh <- consumers_long %>%
+  group_by(rowID)%>%
+  filter(daily_intake>0)%>%
+  filter(OEHHA_fish_names == "Rainbow trout")%>%
+  summarise(any_exceeded=any(exceed_threshold))%>%#Get a list of which people exceeded a threshold at least once. 
+  ungroup()%>%
+  filter(!is.na(any_exceeded))%>%
+  summarise(percent_exceed = round((sum(any_exceeded)/n())*100,1)) %>% #Count the total number of people and excedences to summarise the final result. 
+  mutate(lakes = "all") %>%  # Add a column for the label
+  mutate(fish = "rainbow trout") %>%
+  select(lakes, fish, everything()) 
+##All consumers consumption rate
+
+all_rt_consumption_rate <- consumers_long %>% 
+  group_by(rowID)%>%
+  filter(daily_intake>0)%>%
+  filter(OEHHA_fish_names == "Rainbow trout")%>%
+  summarise(total_daily_intake = sum(daily_intake, na.rm = TRUE))%>%
+  ungroup()
+
+##create summary table
+rt_summary_table <- all_rt_consumption_rate %>%
+  summarise(
+    n=n(),
+    min = round(min(total_daily_intake, na.rm = TRUE),1),
+    max = round(max(total_daily_intake, na.rm = TRUE),1),
+    mean = round(mean(total_daily_intake, na.rm = TRUE),1),
+    median = round(median(total_daily_intake, na.rm = TRUE),1)
+  ) %>%
+  mutate(lakes = "all") %>%  # Add a column for the label
+  mutate(fish = "rainbow trout") %>%
+  select(lakes, fish, everything())  # Move the label column to the front
+  
+rt_summary_table <- left_join(rt_summary_table, per_rt_exceed_thresh)
+```
+
+####catfish
+```{r}
+##all lakes catfish
+
+###Percent of consumers exceeding threshold
+per_cat_exceed_thresh <- consumers_long %>%
+  group_by(rowID)%>%
+  filter(daily_intake>0)%>%
+  filter(OEHHA_fish_names %in% c("Catfish species", "Channel catfish")) %>%
+  summarise(any_exceeded=any(exceed_threshold))%>%#Get a list of which people exceeded a threshold at least once. 
+  ungroup()%>%
+  filter(!is.na(any_exceeded))%>%
+  summarise(percent_exceed = round((sum(any_exceeded)/n())*100,1)) %>% #Count the total number of people and excedences to summarise the final result. 
+  mutate(lakes = "all") %>%  # Add a column for the label
+  mutate(fish = "Catfish species") %>%
+  select(lakes, fish, everything()) 
+##All consumers consumption rate
+
+all_cat_consumption_rate <- consumers_long %>% 
+  group_by(rowID)%>%
+  filter(daily_intake>0)%>%
+  filter(OEHHA_fish_names %in% c("Catfish species", "Channel catfish")) %>%
+  summarise(total_daily_intake = sum(daily_intake, na.rm = TRUE))%>%
+  ungroup()
+
+##create summary table
+cat_summary_table <- all_cat_consumption_rate %>%
+  summarise(
+    n=n(),
+    min = round(min(total_daily_intake, na.rm = TRUE),1),
+    max = round(max(total_daily_intake, na.rm = TRUE),1),
+    mean = round(mean(total_daily_intake, na.rm = TRUE),1),
+    median = round(median(total_daily_intake, na.rm = TRUE),1)
+  ) %>%
+  mutate(lakes = "all") %>%  # Add a column for the label
+  mutate(fish = "Catfish species") %>%
+  select(lakes, fish, everything())  # Move the label column to the front
+  
+cat_summary_table <- left_join(cat_summary_table, per_cat_exceed_thresh)
+```
+####sunfish
+```{r}
+##all lakes sunfish
+
+###Percent of consumers exceeding threshold
+per_sunfish_exceed_thresh <- consumers_long %>%
+  group_by(rowID)%>%
+  filter(daily_intake>0)%>%
+  filter(OEHHA_fish_names == "Sunfish species")%>%
+  summarise(any_exceeded=any(exceed_threshold))%>%#Get a list of which people exceeded a threshold at least once. 
+  ungroup()%>%
+  filter(!is.na(any_exceeded))%>%
+  summarise(percent_exceed = round((sum(any_exceeded)/n())*100,1)) %>% #Count the total number of people and excedences to summarise the final result. 
+  mutate(lakes = "all") %>%  # Add a column for the label
+  mutate(fish = "Sunfish species") %>%
+  select(lakes, fish, everything()) 
+##All consumers consumption rate
+
+all_sunfish_consumption_rate <- consumers_long %>% 
+  group_by(rowID)%>%
+  filter(daily_intake>0)%>%
+  filter(OEHHA_fish_names == "Sunfish species")%>%
+  summarise(total_daily_intake = sum(daily_intake, na.rm = TRUE))%>%
+  ungroup()
+
+##create summary table
+sunfish_summary_table <- all_sunfish_consumption_rate %>%
+  summarise(
+    n=n(),
+    min = round(min(total_daily_intake, na.rm = TRUE),1),
+    max = round(max(total_daily_intake, na.rm = TRUE),1),
+    mean = round(mean(total_daily_intake, na.rm = TRUE),1),
+    median = round(median(total_daily_intake, na.rm = TRUE),1)
+  ) %>%
+  mutate(lakes = "all") %>%  # Add a column for the label
+  mutate(fish = "Sunfish species") %>%
+  select(lakes, fish, everything())  # Move the label column to the front
+  
+sunfish_summary_table <- left_join(sunfish_summary_table, per_sunfish_exceed_thresh)
+```
+####carp
+```{r}
+##All lakes Carp
+
+###Percent of consumers exceeding threshold
+per_carp_exceed_thresh <- consumers_long %>%
+  group_by(rowID)%>%
+  filter(daily_intake>0)%>%
+  filter(OEHHA_fish_names == "Common carp")%>%
+  summarise(any_exceeded=any(exceed_threshold))%>%#Get a list of which people exceeded a threshold at least once. 
+  ungroup()%>%
+  filter(!is.na(any_exceeded))%>%
+  summarise(percent_exceed = round((sum(any_exceeded)/n())*100,1)) %>% #Count the total number of people and excedences to summarise the final result. 
+  mutate(lakes = "all") %>%  # Add a column for the label
+  mutate(fish = "Common carp") %>%
+  select(lakes, fish, everything()) 
+##All consumers consumption rate
+
+all_carp_consumption_rate <- consumers_long %>% 
+  group_by(rowID)%>%
+  filter(daily_intake>0)%>%
+  filter(OEHHA_fish_names == "Common carp")%>%
+  summarise(total_daily_intake = sum(daily_intake, na.rm = TRUE))%>%
+  ungroup()
+
+##create summary table
+carp_summary_table <- all_carp_consumption_rate %>%
+  summarise(
+    n=n(),
+    min = round(min(total_daily_intake, na.rm = TRUE),1),
+    max = round(max(total_daily_intake, na.rm = TRUE),1),
+    mean = round(mean(total_daily_intake, na.rm = TRUE),1),
+    median = round(median(total_daily_intake, na.rm = TRUE),1)
+  ) %>%
+  mutate(lakes = "all") %>%  # Add a column for the label
+  mutate(fish = "Common carp") %>%
+  select(lakes, fish, everything())  # Move the label column to the front
+  
+carp_summary_table <- left_join(carp_summary_table, per_carp_exceed_thresh)
+```
+####bass
+```{r}
+##All lakes Bass
+
+###Percent of consumers exceeding threshold
+per_bass_exceed_thresh <- consumers_long %>%
+  group_by(rowID)%>%
+  filter(daily_intake>0)%>%
+  filter(OEHHA_fish_names == "Black bass species")%>%
+  summarise(any_exceeded=any(exceed_threshold))%>%#Get a list of which people exceeded a threshold at least once. 
+  ungroup()%>%
+  filter(!is.na(any_exceeded))%>%
+  summarise(percent_exceed = round((sum(any_exceeded)/n())*100,1)) %>% #Count the total number of people and excedences to summarise the final result. 
+  mutate(lakes = "all") %>%  # Add a column for the label
+  mutate(fish = "Black bass species") %>%
+  select(lakes, fish, everything())
+
+##All consumers consumption rate
+
+all_bass_consumption_rate <- consumers_long %>% 
+  group_by(rowID)%>%
+  filter(daily_intake>0)%>%
+  filter(OEHHA_fish_names == "Black bass species")%>%
+  summarise(total_daily_intake = sum(daily_intake, na.rm = TRUE))%>%
+  ungroup()
+
+##create summary table
+bass_summary_table <- all_bass_consumption_rate %>%
+  summarise(
+    n=n(),
+    min = round(min(total_daily_intake, na.rm = TRUE),1),
+    max = round(max(total_daily_intake, na.rm = TRUE),1),
+    mean = round(mean(total_daily_intake, na.rm = TRUE),1),
+    median = round(median(total_daily_intake, na.rm = TRUE),1)
+  ) %>%
+  mutate(lakes = "all") %>%  # Add a column for the label
+  mutate(fish = "Black bass species") %>%
+  select(lakes, fish, everything())  # Move the label column to the front
+  
+bass_summary_table <- left_join(bass_summary_table, per_bass_exceed_thresh) %>%
+  select(lakes, fish, everything()) 
+
+bass_summary_table <- left_join(bass_summary_table, per_bass_exceed_thresh)
+```
+####crappie
+```{r}
+##All lakes Crappie
+
+###Percent of consumers exceeding threshold
+per_crappie_exceed_thresh <- consumers_long %>%
+  group_by(rowID)%>%
+  filter(daily_intake>0)%>%
+  filter(OEHHA_fish_names == "Crappie species")%>%
+  summarise(any_exceeded=any(exceed_threshold))%>%#Get a list of which people exceeded a threshold at least once. 
+  ungroup()%>%
+  filter(!is.na(any_exceeded))%>%
+  summarise(percent_exceed = round((sum(any_exceeded)/n())*100,1)) %>% #Count the total number of people and excedences to summarise the final result. 
+  mutate(lakes = "all") %>%  # Add a column for the label
+  mutate(fish = "Crappie species") %>%
+  select(lakes, fish, everything())
+
+##All consumers consumption rate
+
+all_crappie_consumption_rate <- consumers_long %>% 
+  group_by(rowID)%>%
+  filter(daily_intake>0)%>%
+  filter(OEHHA_fish_names == "Crappie species")%>%
+  summarise(total_daily_intake = sum(daily_intake, na.rm = TRUE))%>%
+  ungroup()
+
+##create summary table
+crappie_summary_table <- all_crappie_consumption_rate %>%
+  summarise(
+    n=n(),
+    min = round(min(total_daily_intake, na.rm = TRUE),1),
+    max = round(max(total_daily_intake, na.rm = TRUE),1),
+    mean = round(mean(total_daily_intake, na.rm = TRUE),1),
+    median = round(median(total_daily_intake, na.rm = TRUE),1)
+  ) %>%
+  mutate(lakes = "all") %>%  # Add a column for the label
+  mutate(fish = "Crappie species") %>%
+  select(lakes, fish, everything())  # Move the label column to the front
+  
+crappie_summary_table <- left_join(crappie_summary_table, per_crappie_exceed_thresh) %>%
+  select(lakes, fish, everything()) 
+
+crappie_summary_table <- left_join(crappie_summary_table, per_crappie_exceed_thresh)
+
+```
 
 
 
+##Combine summary tables
+
+```{r}
+all_lakes_summary_table <- bind_rows(all_summary_table, rt_summary_table, cat_summary_table, sunfish_summary_table, carp_summary_table, bass_summary_table, crappie_summary_table)
+
+write.csv(all_lakes_summary_table,"consumption_summary.csv", row.names = FALSE)
+```
+
+##extra code?
+```{r}
+##Check if any of this is still necessary
+
+summarize_fish_names <- consumers_long %>%
+  group_by(OEHHA_fish_names)%>%
+  summarize(min(threshold_g_day, na.rm = TRUE))%>%
+  ungroup()
 
 #example percent of people at each park exceeding 300 grams per day for any fish
 percent_people <- consumers_long %>%

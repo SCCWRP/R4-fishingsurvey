@@ -720,7 +720,7 @@ all_lakes_summary_table <- bind_rows(summary_tables)
 ```
 
 
-##START here - this loop works
+##LOOP all lakes consumption
 ```{r}
 
 # List of fish species to analyze
@@ -734,29 +734,48 @@ fish_species <- list(
   "Crappie species" = "Crappie"
 )
 
+age <- list(
+  "all" = c("threshold_g_day_men18","threshold_g_day_child","threshold_g_day_women18_49","threshold_g_day_women50"),
+  "<18" = "threshold_g_day_child",
+  "F18_49" = "threshold_g_day_women18_49",
+  "M18_F50"= c("threshold_g_day_men18","threshold_g_day_women50")
+)
+
+lakes <- list(
+  "all" = unique(consumers_long$updated_lake_name),
+  "Legg lake" = "Legg lake",
+  "Alondra park" = "Alondra park",
+  "Peck Road" = "Peck Road"
+)
+
 # Initialize an empty list to store summary tables
 summary_tables <- list()
 
-lakes <- "all"
-age <- "all"
+for (lake_name in names(lakes)) {
+  selected_lake <- lakes[[lake_name]]
 
-for (fish_name in names(fish_species)) {
+  for (fish_name in names(fish_species)) {
 
-  # Select the appropriate species or all species
-  selected_fish <- fish_species[[fish_name]]
+    # Select the appropriate species or all species
+    selected_fish <- fish_species[[fish_name]]
+  
+    for (age_group in names(age)) {
+     selected_age <- age[[age_group]]
 
   ### Percent of consumers exceeding threshold
   per_exceed_thresh <- consumers_long %>%
     group_by(rowID) %>%
     filter(daily_intake > 0) %>%
     filter(Catches_Info %in% selected_fish) %>%
+    filter(column %in% selected_age)%>%
+    filter(updated_lake_name %in% selected_lake) %>%
     summarise(any_exceeded = any(exceed_threshold)) %>%
     ungroup() %>%
     filter(!is.na(any_exceeded)) %>%
     summarise(percent_exceed = round((sum(any_exceeded) / n()) * 100, 1)) %>%
-    mutate(lakes = lakes) %>%  # Add a column for the label
+    mutate(lakes = lake_name) %>%  # Add a column for the label
     mutate(fish = fish_name) %>%
-    mutate(age = age) %>%
+    mutate(age = age_group) %>%
     select(lakes, age, fish, everything())
 
   ### All consumers consumption rate
@@ -764,6 +783,8 @@ for (fish_name in names(fish_species)) {
     group_by(rowID) %>%
     filter(daily_intake > 0) %>%
     filter(Catches_Info %in% selected_fish) %>%
+    filter(column %in% selected_age)%>%
+    filter(updated_lake_name %in% selected_lake) %>%
     summarise(total_daily_intake = sum(daily_intake, na.rm = TRUE)) %>%
     ungroup()
 
@@ -776,15 +797,17 @@ for (fish_name in names(fish_species)) {
       mean = round(mean(total_daily_intake, na.rm = TRUE), 1),
       median = round(median(total_daily_intake, na.rm = TRUE), 1)
     ) %>%
-    mutate(lakes = lakes) %>%
+    mutate(lakes = lake_name) %>%
     mutate(fish = fish_name) %>%
-    mutate(age = age) %>%
+    mutate(age = age_group) %>%
     select(lakes, age, fish, everything())
 
   summary_table <- left_join(summary_table, per_exceed_thresh)
 
   # Store the summary table in the list
-  summary_tables[[fish_name]] <- summary_table
+   summary_tables[[paste(fish_name, age_group, lake_name, sep = "_")]] <- summary_table
+    }
+  }
 }
 # Combine all summary tables into a single data frame
 all_lakes_summary_table <- bind_rows(summary_tables)

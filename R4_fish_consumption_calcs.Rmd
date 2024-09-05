@@ -910,7 +910,7 @@ household_consumers <- fisherdb %>% filter(
 )
 
 household_consumers_long <- household_consumers %>%
-  mutate(rowID = 1:nrow(.)) %>%
+  mutate(fisherID = 1:nrow(.)) %>%
   select(-(`Previously_interviewed?`:`Caught_other,_cooking_method`))%>% 
   select(-(`Data_entry_by:_(initials)`:`Fish_consumer_(any_LA_lake)`))%>%
   pivot_longer(
@@ -933,93 +933,118 @@ household_consumers_long <- household_consumers %>%
   )) %>%
 mutate(daily_intake = (daily_intake * 227)/28) %>%
   ###Associate Age
-mutate(age = case_when(
+mutate(hh_age = case_when(
     household_member == "Person_1" ~ `Age_(Person_1)`,
     household_member == "Person_2" ~ `Age_(Person_2)`,
     household_member == "Person_3" ~ `Age_(Person_3)`,
     household_member == "Person_4" ~ `Age_(Person_4)`,
   ))%>%
   ###Associate gender
-mutate(gender = case_when(
+mutate(hh_gender = case_when(
     household_member == "Person_1" ~ `Gender_(Person_1)`,
     household_member == "Person_2" ~ `Gender_(Person_2)`,
     household_member == "Person_3" ~ `Gender_(Person_3)`,
     household_member == "Person_4" ~ `Gender_(Person_4)`,
   )) %>%
   ###Associate species consumed
-mutate(species_consumed = case_when(
+mutate(hh_species_consumed = case_when(
     household_member == "Person_1" ~ `Species_consumed_(Person_1)`,
     household_member == "Person_2" ~ `Species_consumed_(Person_2)`,
     household_member == "Person_3" ~ `Species_consumed_(Person_3)`,
     household_member == "Person_4" ~ `Species_consumed_(Person_4)`,
   )) %>%
   ###Associate parts_eaten
-mutate(parts_eaten = case_when(
+mutate(hh_parts_eaten = case_when(
     household_member == "Person_1" ~ `Parts_eaten_(Person_1)`,
     household_member == "Person_2" ~ `Parts_eaten_(Person_2)`,
     household_member == "Person_3" ~ `Parts_eaten_(Person_3)`,
     household_member == "Person_4" ~ `Parts_eaten_(Person_4)`,
   )) %>%
   ###Associate cooking_details
-mutate(cooking_details = case_when(
+mutate(hh_cooking_details = case_when(
     household_member == "Person_1" ~ `Cooking_details_(Person_1)`,
     household_member == "Person_2" ~ `Cooking_details_(Person_2)`,
     household_member == "Person_3" ~ `Cooking_details_(Person_3)`,
     household_member == "Person_4" ~ `Cooking_details_(Person_4)`,
-  ))
+  ))%>%
+  ###Remove extra rows
+select(-(`Age_(Person_1)`:`Cooking_details_(Person_4)`)) %>%
+  ##Separate hh_species_consumed into separate columns
+separate(hh_species_consumed, into = c("hh_species1", "hh_species2", "hh_species3", "hh_species4"), sep = ",")
 
+
+##Convert to long format by species for each household consumer
+hh_consumers_species_long <- household_consumers_long %>%
+  mutate(hh_consumerID = 1:nrow(.)) %>%
+  pivot_longer(
+    cols = starts_with("hh_species"),
+    names_to = "delete",
+    values_to = "hh_species_consumed"
+  )%>%
+  filter(complete.cases(hh_species_consumed))%>%
+  mutate(hh_species_consumed = trimws(hh_species_consumed))%>%
+###CHECK that all unique names are being captured
+  mutate (hh_species_consumed = case_when(
+    hh_species_consumed == "Rainbow Trout" ~ "Rainbow trout",
+    hh_species_consumed == "Rainbow trout" ~ "Rainbow trout",
+    hh_species_consumed == "Trout" ~ "Rainbow trout",
+    hh_species_consumed == "Catfish" ~ "Catfish",
+    hh_species_consumed == "Bluegill" ~ "Sunfish species",
+    hh_species_consumed == "bluegill" ~ "Sunfish species",
+    hh_species_consumed == "Common Carp" ~ "Common carp",
+    hh_species_consumed == "Carp" ~ "Common carp",
+    hh_species_consumed == "Bass" ~ "Black bass species",
+    hh_species_consumed == "Crappie" ~ "Crappie",
+    hh_species_consumed == "Tilapia"   ~ "Tilapia"  ,
+    hh_species_consumed == "Other" ~ "Other",
+    TRUE ~ hh_species_consumed #For species not listed above
+  ))%>%
+  group_by(hh_consumerID) %>%
+  mutate(number_fish_sp = n()) %>%
+  ungroup()%>%
+  mutate(hh_total_daily_intake = daily_intake)%>%
+  select(-c(delete , daily_intake))%>%
+  ###Making the assumption that daily intake is divided evenly between the fish described. We may be    able to make this calculation more specific
+  mutate(hh_daily_intake_per_fish = hh_total_daily_intake/number_fish_sp)%>%
 ###Next steps associate lakes + fish from person interviewed with household members...
+  mutate (hh_lake = case_when(
+    hh_species_consumed == "Rainbow trout"  ~ `Past_catches:_Rainbow_Trout,_times_eaten,_where`,
+    hh_species_consumed == "Sunfish species" ~ `Past_catches:_Bluegill,_times_eaten,_where`,
+    hh_species_consumed == "Catfish"   ~ `Past_catches:_Catfish,_times_eaten,_where`,
+    hh_species_consumed == "Common carp"   ~ `Past_catches:_Common_Carp,_times_eaten,_where`,
+    hh_species_consumed == "Crappie"  ~ `Past_catches:_Crappie,_times_eaten,_where` ,
+    hh_species_consumed == "Black bass species" ~ `Past_catches:_Bass,_times_eaten,_where`,
+  ))%>%
+   ##Separate lake data into separate columns
+separate(hh_lake, into = c("hh_lake1", "hh_lake2", "hh_lake3", "hh_lake4"), sep = ",")%>%
+###pivot long by lake and divide consumption by lake
+  pivot_longer(
+    cols = starts_with("hh_lake"),
+    names_to = "delete",
+    values_to = "hh_lakes"
+  )%>%
+  filter(complete.cases(hh_lakes))%>%
+  mutate(hh_lakes= trimws(hh_lakes))%>%
+  group_by(hh_consumerID, hh_species_consumed) %>%
+  mutate(number_lakes = n()) %>%
+  ungroup() %>%
+  mutate(hh_daily_intake_per_fish_per_lake = hh_daily_intake_per_fish/number_lakes)
+  
 
 ##Check data 
 
 household_consumers_long_subset <- household_consumers_long %>%
   select(Number_in_household:cooking_details)%>%
   select(-(`If_State_addressed_concerns,_would_you_eat_fish?`:Interview_Comments))%>%
-  select(rowID, Number_in_household, Number_in_household_eating_caught_fish_including_fisher, household_member, Relation_to_fisher, age, gender, species_consumed,parts_eaten, cooking_details,  daily_intake, everything())
+  select(fisherID, Number_in_household, Number_in_household_eating_caught_fish_including_fisher, household_member, Relation_to_fisher, age, gender, species_consumed,parts_eaten, cooking_details,  daily_intake, everything())
  
-###
-consumers_long <- consumers %>%
-  mutate(rowID = 1:nrow(.))%>%
-  # Step 1: Gather the relevant columns into long format
-  pivot_longer(
-    cols = starts_with("Past_catches:") & ends_with("times_eaten,_where"),
-    names_to = "Catches_Info",
-    values_to = "Lakes"
-  ) %>%
-  # Step 2: Separate the lake names into individual rows
-  separate_rows(Lakes, sep = ",") %>%
-  mutate(Catches_Info = gsub("(Past_catches:_)|(,.*)", "", Catches_Info)) %>%
-  mutate(Catches_Info = gsub("_", " ", Catches_Info)) %>%
-  mutate(Lakes = trimws(Lakes))%>%
-  # Step 3: Select the columns to keep
-  select(rowID, Age, Observed_Gender, Catches_Info, Lakes, starts_with("Past_catches:") & ends_with(",_times_eaten"), starts_with("Past_catches:") & ends_with(",_amount_eaten")) %>%
-  rename(`Past_catches:_Bluegill,_amount_eaten`= `Past_catches:_Blue_gill,_amount_eaten`) %>% 
-  ###Calculate consumption rate of each fish at each lake per person
-  mutate(daily_intake = case_when(
-    Catches_Info == "Rainbow Trout" ~ `Past_catches:_Rainbow_Trout,_times_eaten` * `Past_catches:_Rainbow_Trout,_amount_eaten`,
-    Catches_Info == "Catfish" ~ `Past_catches:_Catfish,_times_eaten` * `Past_catches:_Catfish,_amount_eaten`,
-    Catches_Info == "Common Carp" ~ `Past_catches:_Common_Carp,_times_eaten` * `Past_catches:_Common_Carp,_amount_eaten`,
-    Catches_Info == "Crappie" ~ `Past_catches:_Crappie,_times_eaten` * `Past_catches:_Crappie,_amount_eaten`,
-    Catches_Info == "other" ~ `Past_catches:_other,_times_eaten` * `Past_catches:_other,_amount_eaten`,
-    Catches_Info == "Tilapia" ~ `Past_catches:_Tilapia,_times_eaten` * `Past_catches:_Tilapia,_amount_eaten`,
-    Catches_Info == "Bluegill" ~ `Past_catches:_Bluegill,_times_eaten` * `Past_catches:_Bluegill,_amount_eaten`,
-    Catches_Info == "Bass" ~ `Past_catches:_Bass,_times_eaten` * `Past_catches:_Bass,_amount_eaten`,
-    .default = NA
-  )) %>%
-  mutate(daily_intake = (daily_intake * 227)/28) %>%
-  group_by(Catches_Info, rowID) %>%
-  mutate(number_lakes = n()) %>%
-  ungroup() %>%
-  mutate(daily_intake = daily_intake/number_lakes) %>% 
-  separate(Lakes, into = c("Lakes", "times_from_lake"), sep = "\\(", fill = "right") %>%
-  mutate(Lakes = trimws(Lakes))
+```
+##Household consumption x OEHHA thresholds
 
+```{r}
 
 
 ```
-
-
-
 
 
 

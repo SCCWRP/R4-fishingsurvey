@@ -187,11 +187,8 @@ advisories <- advisories %>% mutate(across(
   c(lake,county, OEHHA_fish_names, join_fish_names), as.factor)
 )
 
-
-
 ##Separate lakes in times_eaten_where into separate columns
 #unique_fish <- unique(consumers_long$Catches_Info)
-
 
 advisories_long <- advisories %>%
    #mutate(rowID = 1:nrow(.))%>%
@@ -1028,8 +1025,11 @@ separate(hh_lake, into = c("hh_lake1", "hh_lake2", "hh_lake3", "hh_lake4"), sep 
   group_by(hh_consumerID, hh_species_consumed) %>%
   mutate(number_lakes = n()) %>%
   ungroup() %>%
-  mutate(hh_daily_intake_per_fish_per_lake = hh_daily_intake_per_fish/number_lakes)
-  
+  mutate(hh_daily_intake_per_fish_per_lake = hh_daily_intake_per_fish/number_lakes)%>%
+  select(-delete) %>%
+  ###move this code earlier so that number of lakes is replaced with times from lake if there is a value
+  separate(hh_lakes, into = c("hh_lakes", "times_from_lake"), sep = "\\(", fill = "right") %>%
+  mutate(hh_lakes = trimws(hh_lakes))
 
 ##Check data 
 
@@ -1043,6 +1043,78 @@ household_consumers_long_subset <- household_consumers_long %>%
 
 ```{r}
 
+###extract lake names to update key
+hh_lake_names <- hh_consumers_species_long$hh_lakes
+hh_lake_names <-trimws(hh_lake_names)
+hh_lake_names <- unique(hh_lake_names)
+
+#write.csv(hh_lake_names,"hh_lake_names.csv", row.names = FALSE)
+
+##Names and counties were added to "unique_lake_names.csv" -- now import this dataset
+
+unique_lake_names_key <- read.csv("unique_lake_names_key.csv")
+
+##Join lakes & key to identify if any missed
+
+df_hh_lake_names <- as.data.frame(hh_lake_names)
+anti_join_lakes <- anti_join(df_hh_lake_names, unique_lake_names_key, by=c("hh_lake_names" = "original_name"))
+
+
+##Update lake names with join
+hh_consumers_species_long <- hh_consumers_species_long %>%
+  left_join(unique_lake_names_key %>%
+              select(original_name, lake , county), by = c("hh_lakes" = "original_name")) %>%
+  rename(updated_lake_name = lake) %>%
+  mutate(Age_Category =  case_when(
+    hh_age < 18 ~ "< 18",
+    hh_age >= 18 & hh_gender == "Male" ~ ">= 18",
+    hh_age >= 18 & hh_age < 50 & hh_gender == "Female" ~ "18 - 49",
+    hh_age > 50 & hh_gender == "Female" ~ ">= 50",
+    .default = NA
+  ))%>%
+  mutate(hh_gender = case_when(
+    hh_age <18 ~ "Child",
+    hh_gender =="Female" ~"Female",
+    hh_gender == "Male"~"Male"
+  ))
+
+##Join consumers with advisories
+  hh_consumers_species_long <- hh_consumers_species_long   %>%
+  left_join(advisories_long, by = c("updated_lake_name" = "lake", 
+                                    "Age_Category" = "Age", 
+                                    "hh_gender" = "Gender",
+                                    "hh_species_consumed" = "join_fish_names"
+                                    )) %>%
+   rename(county = county.x)%>%
+   select(-county.y)
+  
+##Fill in statewide advisories for lakes/fish where there are no lake specific consumption data
+# Perform the left join only on the rows that meet the condition
+hh_joined_data <- hh_consumers_species_long %>%
+  filter(hh_daily_intake_per_fish_per_lake > 0 & is.na(column)) %>%
+  left_join(statewide_adv, by = c("Age_Category" = "Age", 
+                                  "hh_gender" = "Gender",
+                                  "hh_species_consumed" = "join_fish_names"))%>%
+  select(-lake)
+  
+# Keep the rows that do not meet the condition as they are
+non_joined_data <- hh_consumers_species_long %>%
+  filter(!(hh_daily_intake_per_fish_per_lake > 0 & is.na(column)))
+  
+# Combine the two data frames back together
+hh_consumers_species_long <- bind_rows(joined_data, non_joined_data) 
+
+hh_consumers_species_long <-hh_consumers_species_long %>% 
+  mutate(column = coalesce(column, statewide_column,),
+         threshold_g_day = coalesce(threshold_g_day, statewide_threshold_g_day),
+         OEHHA_fish_names = coalesce(OEHHA_fish_names, OEHHA_fish_names.y)
+         )%>%
+  select(-statewide_column, - statewide_threshold_g_day, -OEHHA_fish_names.x, - OEHHA_fish_names.y)%>%
+  mutate(exceed_threshold = hh_daily_intake_per_fish_per_lake > threshold_g_day)
+
+##During data clean up - check NAs here. Explore why.
+##Need to check code to make sure things are filtering & calculating as expected
+write.csv(hh_consumers_long, "hh_consumers_long.csv", , row.names = FALSE)
 
 ```
 

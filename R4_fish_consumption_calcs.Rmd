@@ -214,7 +214,7 @@ advisories_long <- advisories %>%
   ))
 
 consumers_long <- consumers %>%
-  mutate(rowID = 1:nrow(.))%>%
+  mutate(rowID = 1:nrow(.)) %>%
   # Step 1: Gather the relevant columns into long format
   pivot_longer(
     cols = starts_with("Past_catches:") & ends_with("times_eaten,_where"),
@@ -245,7 +245,7 @@ consumers_long <- consumers %>%
   group_by(Catches_Info, rowID) %>%
   mutate(number_lakes = n()) %>%
   ungroup() %>%
-  mutate(daily_intake = daily_intake/number_lakes) %>% 
+  mutate(daily_intake_per_lake = daily_intake/number_lakes) %>% 
   separate(Lakes, into = c("Lakes", "times_from_lake"), sep = "\\(", fill = "right") %>%
   mutate(Lakes = trimws(Lakes))
 
@@ -400,7 +400,6 @@ for (lake_name in names(lakes)) {
     selected_fish <- fish_species[[fish_name]]
   
     
-
   ### Percent of consumers exceeding threshold
   per_exceed_thresh <- consumers_long %>%
     group_by(rowID) %>%
@@ -1031,12 +1030,6 @@ separate(hh_lake, into = c("hh_lake1", "hh_lake2", "hh_lake3", "hh_lake4"), sep 
   separate(hh_lakes, into = c("hh_lakes", "times_from_lake"), sep = "\\(", fill = "right") %>%
   mutate(hh_lakes = trimws(hh_lakes))
 
-##Check data 
-
-household_consumers_long_subset <- household_consumers_long %>%
-  select(Number_in_household:cooking_details)%>%
-  select(-(`If_State_addressed_concerns,_would_you_eat_fish?`:Interview_Comments))%>%
-  select(fisherID, Number_in_household, Number_in_household_eating_caught_fish_including_fisher, household_member, Relation_to_fisher, age, gender, species_consumed,parts_eaten, cooking_details,  daily_intake, everything())
  
 ```
 ##Household consumption x OEHHA thresholds
@@ -1114,7 +1107,7 @@ hh_consumers_species_long <-hh_consumers_species_long %>%
 
 ##During data clean up - check NAs here. Explore why.
 ##Need to check code to make sure things are filtering & calculating as expected
-write.csv(hh_consumers_long, "hh_consumers_long.csv", , row.names = FALSE)
+write.csv(hh_consumers_species_long, "hh_consumers_long.csv", , row.names = FALSE)
 
 ```
 

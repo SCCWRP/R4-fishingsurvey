@@ -524,7 +524,7 @@ for (lake_name in names(lakes)) {
     filter(Catches_Info %in% selected_fish) %>%
     filter(column %in% selected_age)%>%
     filter(updated_lake_name %in% selected_lake) %>%
-    summarise(any_exceeded = any(exceed_threshold)) %>%
+    summarise(any_exceeded = any(exceed_threshold_avg_lake)) %>%
     ungroup() %>%
     filter(!is.na(any_exceeded)) %>%
     summarise(percent_exceed = round((sum(any_exceeded) / n()) * 100, 1)) %>%
@@ -532,6 +532,8 @@ for (lake_name in names(lakes)) {
     mutate(fish = fish_name) %>%
     mutate(age = age_group) %>%
     select(lakes, age, fish, everything())
+  
+  
 
   ### All consumers consumption rate
   all_consumption_rate <- LA_county_consumers %>%

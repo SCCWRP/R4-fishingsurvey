@@ -29,18 +29,18 @@ path <- c("//pacific/Toxicology/tox/Risk Assessment/Region4_Urban lakes fishers 
 
 excel_sheets(path)
 
-fisherdb <-read_excel(path, sheet = "Interviews")
+fisherdb_import <-read_excel(path, sheet = "Interviews")
 
-colnames<-colnames(fisherdb)
+colnames<-colnames(fisherdb_import)
 colnames
 
 #Replace spaces with underscores in column names
-names(fisherdb) <- gsub(" ", "_", names(fisherdb))
-names(fisherdb)
+names(fisherdb_import) <- gsub(" ", "_", names(fisherdb_import))
+names(fisherdb_import)
 
 ###CHECK errors when converting to numeric / factor - are we losing data by introducing NAs
 #Convert to numeric / factor
-fisherdb <- fisherdb %>%
+fisherdb <- fisherdb_import %>%
   mutate(across(c(`Past_catches:_Rainbow_Trout,_times_eaten`, 
                   `Past_catches:_Catfish,_times_eaten`, 
                   `Past_catches:_Bluegill,_times_eaten`,
@@ -79,6 +79,32 @@ fisherdb <- fisherdb %>%
   
  mutate(across(c( Observed_Gender
  ),as.factor))
+
+##Confirm NAs introduced are okay
+##Why are NAs not reading in as NA?
+
+summary(as.factor(fisherdb_import$`Past_catches:_Rainbow_Trout,_times_eaten`))
+summary(as.factor(fisherdb_import$`Past_catches:_Catfish,_times_eaten`))
+summary(as.factor(fisherdb_import$`Past_catches:_Bluegill,_times_eaten`))
+summary(as.factor(fisherdb_import$`Past_catches:_Common_Carp,_times_eaten`))
+summary(as.factor(fisherdb_import$`Past_catches:_Bass,_times_eaten`))
+summary(as.factor(fisherdb_import$`Past_catches:_Crappie,_times_eaten`))
+summary(as.factor(fisherdb_import$`Past_catches:_Tilapia,_times_eaten`))
+summary(as.factor(fisherdb_import$`Past_catches:_other,_times_eaten`))
+
+
+original_NA_count <- sum(is.na(as.factor(fisherdb_import$`Past_catches:_Rainbow_Trout,_times_eaten`)))
+new_NA_count <- sum(is.na(fisherdb$`Past_catches:_Rainbow_Trout,_times_eaten`))
+coercion_na_count <- new_NA_count - original_NA_count
+
+# Print out the comparison
+if(coercion_na_count == 0) {
+  print("No new NAs were introduced by coercion.", `Past_catches:_Rainbow_Trout,_times_eaten`)
+} else {
+  print(paste("Number of new NAs introduced by coercion:", coercion_na_count))
+}
+
+### TEST
 
 
 ```

@@ -253,7 +253,8 @@ consumers_long <- consumers %>%
   mutate(Catches_Info = gsub("_", " ", Catches_Info)) %>%
   mutate(Lakes = trimws(Lakes))%>%
   # Step 3: Select the columns to keep
-  select(rowID, Age, Observed_Gender, Catches_Info, Lakes, starts_with("Past_catches:") & ends_with(",_times_eaten"), starts_with("Past_catches:") & ends_with(",_amount_eaten")) %>%
+  select(rowID, Age, Observed_Gender, Catches_Info, Lakes, starts_with("Past_catches:") & ends_with(",_times_eaten"), starts_with("Past_catches:") & ends_with(",_amount_eaten"),
+        starts_with("Past_catches:") & ends_with("parts_eaten") ) %>%
   rename(`Past_catches:_Bluegill,_amount_eaten`= `Past_catches:_Blue_gill,_amount_eaten`) %>% 
   ###Calculate consumption rate of each fish at each lake per person
   mutate(daily_intake = case_when(
@@ -388,8 +389,84 @@ datacheck <- consumers_long %>% select(rowID, Catches_Info, updated_lake_name, t
 write.csv(consumers_long, "consumers_long.csv", , row.names = FALSE)
 
 ```
+##Parts of fish consumed
+```{r}
+
+##Case when to select parts of fish consumed ONLY by fishers who consumed fish in past month
+
+fish_parts <- fisherdb %>%
+    mutate(parts_consumed_rainbow_trout =    case_when(`Past_catches:_Rainbow_Trout,_times_eaten` > 0 ~ `Past_catches:_Rainbow_Trout,_parts_eaten`)) %>%
+    mutate(parts_consumed_catfish = case_when(`Past_catches:_Catfish,_times_eaten` > 0 ~ `Past_catches:_Catfish,_parts_eaten`)) %>%
+    mutate(parts_consumed_common_carp = case_when(`Past_catches:_Common_Carp,_times_eaten` > 0 ~ `Past_catches:_Common_Carp,_parts_eaten`)) %>%
+  mutate(parts_consumed_crappie = case_when(`Past_catches:_Crappie,_times_eaten` > 0 ~ `Past_catches:_Crappie,_parts_eaten`)) %>%
+    mutate(parts_consumed_other = case_when(`Past_catches:_other,_times_eaten` > 0 ~ `Past_catches:_other,_parts_eaten`)) %>%
+  mutate(parts_consumed_tilapia = case_when(`Past_catches:_Tilapia,_times_eaten` > 0 ~ `Past_catches:_Tilapia,_parts_eaten`)) %>%
+  mutate(parts_consumed_bluegill = case_when(`Past_catches:_Bluegill,_times_eaten` > 0 ~ `Past_catches:_Bluegill,_parts_eaten`)) %>%
+  mutate(parts_consumed_bass = case_when(`Past_catches:_Bass,_times_eaten` > 0 ~ `Past_catches:_Bass,_parts_eaten`)) %>% 
+  select(Location, Observed_Gender, parts_consumed_rainbow_trout, parts_consumed_catfish,parts_consumed_common_carp,parts_consumed_crappie,parts_consumed_other,parts_consumed_tilapia,parts_consumed_bluegill,parts_consumed_bass) %>%
+  filter(!if_all(c(parts_consumed_rainbow_trout, parts_consumed_catfish, parts_consumed_common_carp, 
+                   parts_consumed_crappie, parts_consumed_other, parts_consumed_tilapia, 
+                   parts_consumed_bluegill, parts_consumed_bass), is.na))%>%
+  mutate(combined_parts_consumed = pmap_chr(list(parts_consumed_rainbow_trout, parts_consumed_catfish,parts_consumed_common_carp, parts_consumed_crappie, parts_consumed_other, parts_consumed_tilapia, parts_consumed_bluegill, parts_consumed_bass),~ paste(na.omit(c(...)), collapse = ", ")))
+
+##Create a unique list of parts of fish eaten
+unique_parts <- unique(c(
+  unique(fish_parts$parts_consumed_rainbow_trout),
+  unique(fish_parts$parts_consumed_catfish),
+  unique(fish_parts$parts_consumed_common_carp),
+  unique(fish_parts$parts_consumed_crappie),
+  unique(fish_parts$parts_consumed_other),
+  unique(fish_parts$parts_consumed_tilapia),
+  unique(fish_parts$parts_consumed_bluegill),
+  unique(fish_parts$parts_consumed_bass)
+  ))
+  
+fish_parts_long <- fish_parts %>%
+   mutate(fisherID = 1:nrow(.)) %>%
+  pivot_longer(
+    cols = starts_with("parts_consumed"),
+    names_to = "fish_consumed",
+    values_to = "parts_of_fish"
+  )%>%
+  select(fisherID, Location, Observed_Gender, fisherID, fish_consumed, parts_of_fish) %>%
+  mutate(fish_consumed = gsub("parts_consumed", "", fish_consumed)) %>%
+  mutate(fish_consumed = gsub("_", " ", fish_consumed))%>%
+  na.omit(parts_of_fish)
 
 
+##Ignore fish type and group by fisher ID
+fish_parts_all <- fish_parts_long %>% 
+  select(!fish_consumed)%>%
+  distinct(.keep_all = TRUE)
+
+##Calculate the percent frequency different parts of fish are consumed (regardless of fish type or lake) - data cleaning still needed
+
+fish_parts_frequency <- fish_parts_all %>%
+  count(parts_of_fish) %>%
+  mutate(percent_frequency = round(n / sum(n) * 100))
+
+
+# fish_parts <- consumers_long %>% 
+#   mutate(parts_consumed = case_when(
+#     Catches_Info == "Rainbow trout" & `Past_catches:_Rainbow_Trout,_times_eaten` > 0 ~ `Past_catches:_Rainbow_Trout,_parts_eaten`,
+#     Catches_Info == "Catfish" & `Past_catches:_Catfish,_times_eaten` > 0 ~ `Past_catches:_Catfish,_parts_eaten`,
+#     Catches_Info == "Common carp" & `Past_catches:_Catfish,_times_eaten` > 0 ~ `Past_catches:_Catfish,_parts_eaten`,
+#     Catches_Info == "Crappie" & `Past_catches:_Catfish,_times_eaten` > 0 ~ `Past_catches:_Catfish,_parts_eaten`,
+#     Catches_Info == "other" & `Past_catches:_Catfish,_times_eaten` > 0 ~ `Past_catches:_Catfish,_parts_eaten`,
+#     Catches_Info == "Tilapia" & `Past_catches:_Catfish,_times_eaten` > 0 ~ `Past_catches:_Catfish,_parts_eaten`,
+#     Catches_Info == "Sunfish species" & `Past_catches:_Catfish,_times_eaten` > 0 ~ `Past_catches:_Catfish,_parts_eaten`,
+#     Catches_Info == "Black bass species" & `Past_catches:_Catfish,_times_eaten` > 0 ~ `Past_catches:_Catfish,_parts_eaten`
+#   ))%>%
+#   select(rowID:Observed_Gender)
+# 
+# 
+# fish_parts_wide <- fish_parts %>%
+#   pivot_wider(
+#     names_from = Catches_Info,
+#     values_from = parts_consumed
+#   )
+
+```
 
 
 ##LOOP surveyed lakes consumption 

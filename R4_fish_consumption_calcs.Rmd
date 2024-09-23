@@ -125,18 +125,19 @@ lake_names <- unlist(strsplit(c(fisherdb$Likely_Fishing_Location_1,
                 fisherdb$`Past_catches:_other,_where`),","))
 
 lake_names <-trimws(lake_names)
-unique_lake_names <- unique(lake_names)
+unique_lake_names <- unique(trimws(lake_names))
 write.csv(unique_lake_names,"unique_lake_names.csv", row.names = FALSE)
 
 ##Names and counties were added to "unique_lake_names.csv" -- now import this dataset
 
-unique_lake_names_key <- read.csv("unique_lake_names_key.csv")
+unique_lake_names_key <- read.csv("unique_lake_names_key.csv",strip.white = TRUE)
 
 ##Join lakes & key to identify if any missed
 
 df_unique_lake_names <- as.data.frame(unique_lake_names)
 anti_join_lakes <- anti_join(df_unique_lake_names, unique_lake_names_key, by=c("unique_lake_names" = "original_name"))
 
+#write.csv(anti_join_lakes, "anti_join_lakes.csv", row.names = FALSE)
 ```
 
 
@@ -1292,15 +1293,36 @@ write.csv(hh_all_lakes_summary_table, "hh_consumption_summary.csv", row.names = 
 ```{r }
 fisherdb <- fisherdb %>%
   mutate(Age= as.numeric(Age))
-summary(fisherdb$Age >100)
+summary(fisherdb$Age)
 
 fisherdb <- fisherdb %>%
   mutate(`Observed_Gender` = case_when(
-    `Observed_Gender` %in% c("unknown") ~ "Male",
+   # `Observed_Gender` %in% c("unknown") ~ "Male",
     TRUE ~ `Observed_Gender`
   ))
 
-ggplot(fisherdb, aes(x = Age, fill = Observed_Gender)) +
+fisher_hist <-ggplot(fisherdb, aes(x = Age, fill = Observed_Gender)) +
+  geom_histogram(binwidth = 10, color = "#000000") +
+  labs(
+    title = "",
+    x = "Age",
+    y = "Frequency",
+    fill = "Gender"
+  ) +
+  scale_fill_manual(values = c("#ff8900","#15607a","gray"))+
+  theme(panel.background =element_blank(),
+        axis.line = element_line(color = "black"),
+        legend.position = "top",)
+
+fisher_hist
+
+##histogram of age/gendre of fishers who consume fish
+fish_consumers <- consumers_long %>%
+  group_by(rowID) %>%
+  summarise(Age = first(Age), Observed_Gender = first(Observed_Gender)) %>%
+  ungroup()
+
+fisher_consumer_hist <- ggplot(fish_consumers, aes(x = Age, fill = Observed_Gender)) +
   geom_histogram(binwidth = 10, color = "black") +
   labs(
     title = "",
@@ -1308,17 +1330,37 @@ ggplot(fisherdb, aes(x = Age, fill = Observed_Gender)) +
     y = "Frequency",
     fill = "Gender"
   ) +
-  scale_fill_manual(values = c("#D47E6A","#248B87","gray"))+
+  scale_fill_manual(values = c("gray","#ff8900","#15607a"))+
+  scale_y_continuous(limits=c(0,20))+
+  scale_x_continuous(limits=c(0,190))
   theme(panel.background =element_blank(),
         axis.line = element_line(color = "black"),
         legend.position = "top",)
 
-hh_age_histo <- hh_consumers_species_long %>%
+fisher_consumer_hist
+
+##histogram age/gender household (hh) members
+
+hh_age <- hh_consumers_species_long %>%
   mutate(across(c(hh_gender_original),as.factor))%>%
   filter(hh_daily_intake_per_fish>0)%>%
   select(c(hh_age,hh_gender_original))
 
+hh_hist <-ggplot(hh_age, aes(x = hh_age, fill = hh_gender_original)) +
+  geom_histogram(binwidth = 10, color = "black") +
+  labs(
+    title = "",
+    x = "Age",
+    y = "Frequency",
+    fill = "Gender"
+  ) +
+  scale_fill_manual(values = c("#ff8900","#15607a","gray"))+
+  scale_y_continuous(limits=c(0,20))+
+  theme(panel.background =element_blank(),
+        axis.line = element_line(color = "black"),
+        legend.position = "top",)
 
+hh_hist
 
 
 ```

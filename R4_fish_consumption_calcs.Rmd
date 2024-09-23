@@ -141,7 +141,6 @@ anti_join_lakes <- anti_join(df_unique_lake_names, unique_lake_names_key, by=c("
 ```
 
 
-
 #Calculate consumption rate (Fishers)
 ```{r}
 ##Subset to only fish consumers (<4 weeks)
@@ -248,7 +247,7 @@ consumers_long <- consumers %>%
     names_to = "Catches_Info",
     values_to = "Lakes"
   ) %>%
-  # Step 2: Separate the lake names into individual rows
+  #Step 2: Separate the lake names into individual rows
   separate_rows(Lakes, sep = ",") %>%
   mutate(Catches_Info = gsub("(Past_catches:_)|(,.*)", "", Catches_Info)) %>%
   mutate(Catches_Info = gsub("_", " ", Catches_Info)) %>%

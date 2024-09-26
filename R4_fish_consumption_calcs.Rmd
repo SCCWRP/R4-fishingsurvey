@@ -473,7 +473,7 @@ fish_parts_frequency <- fish_parts_all %>%
 
 # List of fish species to analyze
 fish_species <- list(
-  "all" = c("Rainbow trout", "Catfish", "Sunfish species", "Common carp", "Black bass species", "Crappie species"),
+  "All" = c("Rainbow trout", "Catfish", "Sunfish species", "Common carp", "Black bass species", "Crappie species"),
   "Rainbow trout" = "Rainbow trout",
   "Catfish" = "Catfish",
   "Sunfish species" = "Sunfish species",
@@ -483,14 +483,14 @@ fish_species <- list(
 )
 
 age <- list(
-  "all" = c("threshold_g_day_men18","threshold_g_day_child","threshold_g_day_women18_49","threshold_g_day_women50"),
+  "All" = c("threshold_g_day_men18","threshold_g_day_child","threshold_g_day_women18_49","threshold_g_day_women50"),
   "<18" = "threshold_g_day_child",
   "F18_49" = "threshold_g_day_women18_49",
   "M18_F50"= c("threshold_g_day_men18","threshold_g_day_women50")
 )
 
 lakes <- list(
-  "all" = unique(consumers_long$updated_lake_name)
+  "All" = unique(consumers_long$updated_lake_name)
 )
 
 # Initialize an empty list to store summary tables
@@ -517,7 +517,7 @@ for (lake_name in names(lakes)) {
     summarise(any_exceeded_lake = any(exceed_threshold_indiv_lake)) %>% #Groups by row ID, filters based on selected parameters, then summarizes by assigning "TRUE" if the individual has exceeded the threshold at any individual lake and false if they have not. 
     ungroup() %>%
     filter(!is.na(any_exceeded_lake)) %>% #filters out NAs so that only TRUE / FALSE values are being assesseed 
-    summarise(percent_exceed_lake = round((sum(any_exceeded_lake) / n()) * 100, 1)) %>%  #Summarizes entire column to      calculate percent true exceeding individual lake thresholds
+    summarise(percent_exceed_lake = round((sum(any_exceeded_lake) / n()) * 100)) %>%  #Summarizes entire column to      calculate percent true exceeding individual lake thresholds
     mutate(lakes = lake_name) %>%  # Add a column for the label
     mutate(fish = fish_name) %>%
     mutate(age = age_group) %>%
@@ -533,7 +533,7 @@ for (lake_name in names(lakes)) {
    summarise(any_exceeded_avg = any(exceed_threshold_avg_lake)) %>%# #Does total consumption by each individual from      all lakes exceed average threshold for all lakes
     ungroup() %>%
     filter(!is.na(any_exceeded_avg)) %>%
-   summarise(percent_exceed_avg = round((sum(any_exceeded_avg) / n()) * 100, 1)) %>%
+   summarise(percent_exceed_avg = round((sum(any_exceeded_avg) / n()) * 100)) %>%
     mutate(lakes = lake_name) %>%  # Add a column for the label
     mutate(fish = fish_name) %>%
     mutate(age = age_group) %>%
@@ -553,10 +553,10 @@ for (lake_name in names(lakes)) {
   summary_table <- all_consumption_rate %>%
     summarise(
       n = n(),
-      min = round(min(total_daily_intake, na.rm = TRUE), 1),
-      max = round(max(total_daily_intake, na.rm = TRUE), 1),
-      mean = round(mean(total_daily_intake, na.rm = TRUE), 1),
-      median = round(median(total_daily_intake, na.rm = TRUE), 1)
+      min = round(min(total_daily_intake, na.rm = TRUE)),
+      max = round(max(total_daily_intake, na.rm = TRUE)),
+      mean = round(mean(total_daily_intake, na.rm = TRUE)),
+      median = round(median(total_daily_intake, na.rm = TRUE))
     ) %>%
     mutate(lakes = lake_name) %>%
     mutate(fish = fish_name) %>%
@@ -590,7 +590,7 @@ write.csv(all_lakes_summary_table, "consumption_summary_all.csv", row.names = FA
 
 # List of fish species to analyze
 fish_species <- list(
-  "all" = c("Rainbow trout", "Catfish", "Sunfish species", "Common carp", "Black bass species", "Crappie species"),
+  "All" = c("Rainbow trout", "Catfish", "Sunfish species", "Common carp", "Black bass species", "Crappie species"),
   "Rainbow trout" = "Rainbow trout",
   "Catfish" = "Catfish",
   "Sunfish species" = "Sunfish species",
@@ -600,18 +600,18 @@ fish_species <- list(
 )
 
 age <- list(
-  "all" = c("threshold_g_day_men18","threshold_g_day_child","threshold_g_day_women18_49","threshold_g_day_women50"),
+  "All" = c("threshold_g_day_men18","threshold_g_day_child","threshold_g_day_women18_49","threshold_g_day_women50"),
   "<18" = "threshold_g_day_child",
   "F18_49" = "threshold_g_day_women18_49",
   "M18_F50"= c("threshold_g_day_men18","threshold_g_day_women50")
 )
 
 lakes <- list(
-  "Legg lake" = "Legg lake",
   "Alondra park" = "Alondra park",
-  "Peck Road" = "Peck Road",
-  "Magic Johnson Lakes" = "Magic Johnson Lakes"
-)
+  "Legg lake" = "Legg lake",
+  "Magic Johnson Lakes" = "Magic Johnson Lakes",
+  "Peck Road" = "Peck Road"
+  )
 
 # Initialize an empty list to store summary tables
 summary_tables <- list()
@@ -637,7 +637,7 @@ for (lake_name in names(lakes)) {
     summarise(any_exceeded_lake = any(exceed_threshold_indiv_lake)) %>% #Groups by row ID, filters based on selected parameters, then summarizes by assigning "TRUE" if the individual has exceeded the threshold at any individual lake and false if they have not. 
     ungroup() %>%
     filter(!is.na(any_exceeded_lake)) %>% #filters out NAs so that only TRUE / FALSE values are being assesseed 
-    summarise(percent_exceed_lake = round((sum(any_exceeded_lake) / n()) * 100, 1)) %>%  #Summarizes entire column to      calculate percent true exceeding individual lake thresholds
+    summarise(percent_exceed_lake = round((sum(any_exceeded_lake) / n()) * 100)) %>%  #Summarizes entire column to      calculate percent true exceeding individual lake thresholds
     mutate(lakes = lake_name) %>%  # Add a column for the label
     mutate(fish = fish_name) %>%
     mutate(age = age_group) %>%
@@ -653,7 +653,7 @@ for (lake_name in names(lakes)) {
    summarise(any_exceeded_avg = any(exceed_threshold_avg_lake)) %>%# #Does total consumption by each individual from      all lakes exceed average threshold for all lakes
     ungroup() %>%
     filter(!is.na(any_exceeded_avg)) %>%
-   summarise(percent_exceed_avg = round((sum(any_exceeded_avg) / n()) * 100, 1)) %>%
+   summarise(percent_exceed_avg = round((sum(any_exceeded_avg) / n()) * 100)) %>%
     mutate(lakes = lake_name) %>%  # Add a column for the label
     mutate(fish = fish_name) %>%
     mutate(age = age_group) %>%
@@ -673,10 +673,10 @@ for (lake_name in names(lakes)) {
   summary_table <- all_consumption_rate %>%
     summarise(
       n = n(),
-      min = round(min(total_daily_intake, na.rm = TRUE), 1),
-      max = round(max(total_daily_intake, na.rm = TRUE), 1),
-      mean = round(mean(total_daily_intake, na.rm = TRUE), 1),
-      median = round(median(total_daily_intake, na.rm = TRUE), 1)
+      min = round(min(total_daily_intake, na.rm = TRUE)),
+      max = round(max(total_daily_intake, na.rm = TRUE)),
+      mean = round(mean(total_daily_intake, na.rm = TRUE)),
+      median = round(median(total_daily_intake, na.rm = TRUE))
     ) %>%
     mutate(lakes = lake_name) %>%
     mutate(fish = fish_name) %>%
@@ -705,11 +705,19 @@ write.csv(all_lakes_summary_table, "consumption_summary_surveyed_lakes.csv", row
 ```{r}
 
 LA_county_consumers <- consumers_long %>%
-  filter(county == "Los Angeles")
+  filter(county == "Los Angeles")%>%
+  group_by(Catches_Info, rowID) %>%
+  mutate(daily_intake_LA = sum(daily_intake_per_lake))%>%
+  mutate(avg_LAthreshold = mean(threshold_g_day)) %>%
+  ungroup()%>%
+  mutate(exceed_threshold_LA_lake = daily_intake_LA>avg_LAthreshold)
+  
+
+datacheck <- LA_county_consumers %>% select(rowID, Catches_Info , number_lakes,daily_intake, daily_intake_per_lake, threshold_g_day, threshold_used, avg_threshold,daily_intake_LA, avg_LAthreshold, exceed_threshold_LA_lake)
 
 # List of fish species to analyze
 fish_species <- list(
-  "all" = c("Rainbow trout", "Catfish", "Sunfish species", "Common carp", "Black bass species", "Crappie species"),
+  "All" = c("Rainbow trout", "Catfish", "Sunfish species", "Common carp", "Black bass species", "Crappie species"),
   "Rainbow trout" = "Rainbow trout",
   "Catfish" = "Catfish",
   "Sunfish species" = "Sunfish species",
@@ -719,34 +727,36 @@ fish_species <- list(
 )
 
 age <- list(
-  "all" = c("threshold_g_day_men18","threshold_g_day_child","threshold_g_day_women18_49","threshold_g_day_women50"),
+  "All" = c("threshold_g_day_men18","threshold_g_day_child","threshold_g_day_women18_49","threshold_g_day_women50"),
   "<18" = "threshold_g_day_child",
   "F18_49" = "threshold_g_day_women18_49",
   "M18_F50"= c("threshold_g_day_men18","threshold_g_day_women50")
 )
 ##CHECK to ensure lake list is up to date before final analysis
 lakes <- list(
-  "all LA county" = unique(LA_county_consumers$updated_lake_name),
-  "all_surveyed" = c("Legg lake","Alondra park","Peck Road"),
-  "Legg lake" = "Legg lake",
-  "Alondra park" = "Alondra park",
-  "Peck Road" = "Peck Road",
-  "El Dorado Park Lake" = "El Dorado Park Lake",
+  "All LA county" = unique(LA_county_consumers$updated_lake_name),
+  #"all_surveyed" = c("Legg lake","Alondra park","Peck Road"),
+  #"Legg lake" = "Legg lake",
+ # "Alondra park" = "Alondra park",
+  #"Peck Road" = "Peck Road",
+ "Belvedere Park"  ="Belvedere Park"  ,
+ "Castaic Lake" ="Castaic Lake" ,
+ "Cerritos Park Lake / Don Knabe" ="Cerritos Park Lake / Don Knabe",
+  "Crystal Lake"="Crystal Lake",
+ "Downey Wilderness Park Lake" = "Downey Wilderness Park Lake" ,
+ "El Dorado Park Lake" = "El Dorado Park Lake",
+ "Hollenbeck Park Lake" = "Hollenbeck Park Lake",
+ "Kenneth Hahn/Gwen Moore Lake" ="Kenneth Hahn/Gwen Moore Lake" ,
+ "Lincoln Park Lake" ="Lincoln Park Lake",
   "MacArthur Park" = "MacArthur Park",
+ "Puddingstone reservoir" ="Puddingstone reservoir" ,
   "Pyramid lake"  = "Pyramid lake"  ,
-  "Downey Wilderness Park Lake" = "Downey Wilderness Park Lake" ,
-  "Belvedere Park"  ="Belvedere Park"  ,
-  "Puddingstone reservoir" ="Puddingstone reservoir" ,
-  "Kenneth Hahn/Gwen Moore Lake" ="Kenneth Hahn/Gwen Moore Lake" ,
-  "Cerritos Park Lake / Don Knabe" ="Cerritos Park Lake / Don Knabe",
-  "Santa Fe Dam lake" ="Santa Fe Dam lake" ,
-  "Lincoln Park Lake" ="Lincoln Park Lake",
-  "Castaic Lake" ="Castaic Lake" ,
-  "Crystal Lake"="Crystal Lake"
+  "Santa Fe Dam lake" ="Santa Fe Dam lake"
+  
 )
 
 # Initialize an empty list to store summary tables
-summary_tables <- list()
+summary_tables_LA <- list()
 
 for (lake_name in names(lakes)) {
   selected_lake <- lakes[[lake_name]]
@@ -759,59 +769,90 @@ for (lake_name in names(lakes)) {
     # Select the appropriate species or all species
     selected_fish <- fish_species[[fish_name]]
   
-    
-
-  ### Percent of consumers exceeding threshold
-  per_exceed_thresh <- LA_county_consumers %>%
+      ### Percent of consumers exceeding thresholds by lake (Exceed lake specific threshold by consuming fish ONLY at that lake) OF if all LA county then calculating contribution of LA county lakes specifically 
+    if (lake_name == "All LA county"){
+    per_exceed_thresh_LA <- LA_county_consumers %>%
     group_by(rowID) %>%
     filter(daily_intake > 0) %>%
     filter(Catches_Info %in% selected_fish) %>%
     filter(column %in% selected_age)%>%
     filter(updated_lake_name %in% selected_lake) %>%
-    summarise(any_exceeded = any(exceed_threshold_avg_lake)) %>%
+    summarise(any_exceeded_lalake = any(exceed_threshold_LA_lake)) %>%#Groups by row ID, filters based on selected parameters, then summarizes by assigning "TRUE" if the individual has exceeded the threshold at any individual lake and false if they have not. 
     ungroup() %>%
-    filter(!is.na(any_exceeded)) %>%
-    summarise(percent_exceed = round((sum(any_exceeded) / n()) * 100, 1)) %>%
+    filter(!is.na(any_exceeded_lalake)) %>% #filters out NAs so that only TRUE / FALSE values are being assessed 
+    summarise(percent_exceed = round((sum(any_exceeded_lalake) / n()) * 100)) %>%
+    mutate(lakes = lake_name) %>%  # Add a column for the label
+    mutate(fish = fish_name) %>%
+    mutate(age = age_group) %>%
+    select(lakes, age, fish, everything())
+    } else {
+  per_exceed_thresh_LA <- LA_county_consumers %>%
+    group_by(rowID) %>%
+    filter(daily_intake > 0) %>%
+    filter(Catches_Info %in% selected_fish) %>%
+    filter(column %in% selected_age)%>%
+    filter(updated_lake_name %in% selected_lake) %>%
+    summarise(any_exceeded_lalake = any(exceed_threshold_indiv_lake)) %>%#Groups by row ID, filters based on selected parameters, then summarizes by assigning "TRUE" if the individual has exceeded the threshold at any individual lake and false if they have not. 
+    ungroup() %>%
+    filter(!is.na(any_exceeded_lalake)) %>% #filters out NAs so that only TRUE / FALSE values are being assessed 
+    summarise(percent_exceed = round((sum(any_exceeded_lalake) / n()) * 100)) %>%
+    mutate(lakes = lake_name) %>%  # Add a column for the label
+    mutate(fish = fish_name) %>%
+    mutate(age = age_group) %>%
+    select(lakes, age, fish, everything())
+    }
+  
+  ### Percent of consumers exceeding thresholds avg threshold
+  
+   per_exceed_avg_thresh_LA <- LA_county_consumers %>%
+    group_by(rowID) %>%
+    filter(daily_intake > 0) %>%
+    filter(Catches_Info %in% selected_fish) %>%
+    filter(column %in% selected_age)%>%
+    filter(updated_lake_name %in% selected_lake) %>%
+    summarise(any_exceeded_avg_lalake = any(exceed_threshold_avg_lake)) %>%#Groups by row ID, filters based on selected parameters, then summarizes by assigning "TRUE" if the individual has exceeded the threshold at any individual lake and false if they have not. 
+    ungroup() %>%
+    filter(!is.na(any_exceeded_avg_lalake)) %>% #filters out NAs so that only TRUE / FALSE values are being assessed 
+    summarise(percent_exceed_avg = round((sum(any_exceeded_avg_lalake) / n()) * 100)) %>%
     mutate(lakes = lake_name) %>%  # Add a column for the label
     mutate(fish = fish_name) %>%
     mutate(age = age_group) %>%
     select(lakes, age, fish, everything())
   
-  
-
-  ### All consumers consumption rate
+  ### Consumers total consumption rate at lake
   all_consumption_rate <- LA_county_consumers %>%
     group_by(rowID) %>%
     filter(daily_intake > 0) %>%
     filter(Catches_Info %in% selected_fish) %>%
     filter(column %in% selected_age)%>%
     filter(updated_lake_name %in% selected_lake) %>%
-    summarise(total_daily_intake = sum(daily_intake, na.rm = TRUE)) %>%
+    summarise(total_daily_intake = sum(daily_intake_per_lake, na.rm = TRUE)) %>%
     ungroup()
 
   ### Create summary table
   summary_table <- all_consumption_rate %>%
     summarise(
       n = n(),
-      min = round(min(total_daily_intake, na.rm = TRUE), 1),
-      max = round(max(total_daily_intake, na.rm = TRUE), 1),
-      mean = round(mean(total_daily_intake, na.rm = TRUE), 1),
-      median = round(median(total_daily_intake, na.rm = TRUE), 1)
+      min = round(min(total_daily_intake, na.rm = TRUE)),
+      max = round(max(total_daily_intake, na.rm = TRUE)),
+      mean = round(mean(total_daily_intake, na.rm = TRUE)),
+      median = round(median(total_daily_intake, na.rm = TRUE))
     ) %>%
     mutate(lakes = lake_name) %>%
     mutate(fish = fish_name) %>%
     mutate(age = age_group) %>%
     select(lakes, age, fish, everything())
 
-  summary_table <- left_join(summary_table, per_exceed_thresh)
+  summary_table <- left_join(summary_table, per_exceed_thresh_LA)
+  summary_table <- left_join(summary_table,  per_exceed_avg_thresh_LA)
 
   # Store the summary table in the list
-   summary_tables[[paste(fish_name, age_group, lake_name, sep = "_")]] <- summary_table
+   summary_tables_LA[[paste(fish_name, age_group, lake_name, sep = "_")]] <- summary_table
     }
   }
 }
 # Combine all summary tables into a single data frame
-LA_county_summary_table <- bind_rows(summary_tables)
+LA_county_summary_table <- bind_rows(summary_tables_LA)
 
 # Write to CSV
 write.csv(LA_county_summary_table, "consumption_LA_county_summary.csv", row.names = FALSE)
@@ -819,7 +860,7 @@ write.csv(LA_county_summary_table, "consumption_LA_county_summary.csv", row.name
 
 
 ```
-##LOOP Orange county lakes consumption 
+##LOOP {NEEDS UPDATE} Orange county lakes consumption 
 ```{r}
 
 Orange_county_consumers <- consumers_long %>%
@@ -924,7 +965,7 @@ write.csv(Orange_county_summary_table, "consumption_Orange_county_summary.csv", 
 
 
 ```
-##LOOP Riverside county lakes consumption 
+##LOOP {NEEDS UPDATE} Riverside county lakes consumption 
 ```{r}
 
 Riverside_county_consumers <- consumers_long %>%
@@ -1030,7 +1071,7 @@ write.csv(Riverside_county_summary_table, "consumption_Riverside_county_summary.
 
 ```
 
-##LOOP San Bernardino county lakes consumption 
+##LOOP {NEEDS UPDATE} San Bernardino county lakes consumption 
 ```{r}
 
 San_Bernardino_county_consumers <- consumers_long %>%
@@ -1361,8 +1402,18 @@ write.csv(hh_consumers_species_long, "hh_consumers_long.csv", , row.names = FALS
 
 ```
 
-##hh LOOP
+##hh LOOP LA
 ```{r}
+
+###START here subsetting for LA
+LA_county_hh_consumers <- hh_consumers_species_long %>%
+  filter(county == "Los Angeles")%>%
+  group_by(hh_species_consumed, rowID) %>%
+  mutate(daily_intake_LA = sum(daily_intake_per_lake))%>%
+  mutate(avg_LAthreshold = mean(threshold_g_day)) %>%
+  ungroup()%>%
+  mutate(exceed_threshold_LA_lake = daily_intake_LA>avg_LAthreshold)
+
 
 # List of fish species to analyze
 fish_species <- list(
@@ -1384,14 +1435,20 @@ age <- list(
 ##CHECK list of lakes is updated
 lakes <- list(
   "all" = unique(hh_consumers_species_long$updated_lake_name),
-  "all_surveyed" = c("Legg lake","Alondra park","Peck Road"),
-  "Legg lake" = "Legg lake",
+  #"all_surveyed" = c("Legg lake","Alondra park","Peck Road"),
   "Alondra park" = "Alondra park",
+  "Legg lake" = "Legg lake",
   "Peck Road" = "Peck Road",
-  "Pyramid lake" ="Pyramid lake",
-  "Puddingstone reservoir" ="Puddingstone reservoir",
-  "Santa Fe Dam lake"  = "Santa Fe Dam lake"  ,
-  "Lake Perris" ="Lake Perris" 
+  "Belvedere Park"="Belvedere Park",
+"Cerritos Park Lake / Don Knabe"="Cerritos Park Lake / Don Knabe",
+ "Crystal Lake" = "Crystal Lake" ,
+"El Dorado Park Lake"="El Dorado Park Lake",
+"Hollenbeck Park Lake" ="Hollenbeck Park Lake" ,
+"Kenneth Hahn/Gwen Moore Lake" ="Kenneth Hahn/Gwen Moore Lake" ,
+"MacArthur Park" = "MacArthur Park" ,
+"Puddingstone reservoir" ="Puddingstone reservoir",  
+"Pyramid lake" ="Pyramid lake",
+  "Santa Fe Dam lake"  = "Santa Fe Dam lake"
 )
 
 # Initialize an empty list to store summary tables

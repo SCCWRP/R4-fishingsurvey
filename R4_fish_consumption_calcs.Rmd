@@ -21,6 +21,7 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(readxl)
 library(ggplot2)
+library(patchwork)
 ```
 ## Import data
 ```{r ,include=FALSE}
@@ -1722,7 +1723,7 @@ fish_consumers <- consumers_long %>%
   ungroup()
 
 fisher_consumer_hist <- ggplot(fish_consumers, aes(x = Age, fill = Observed_Gender)) +
-  geom_histogram(binwidth = 10, color = "black") +
+  geom_histogram(binwidth = 10, boundary = 0, color = "black") +
   labs(
     title = "",
     x = "Age",
@@ -1731,10 +1732,10 @@ fisher_consumer_hist <- ggplot(fish_consumers, aes(x = Age, fill = Observed_Gend
   ) +
   scale_fill_manual(values = c("gray","#ff8900","#15607a"))+
   scale_y_continuous(limits=c(0,20))+
-  scale_x_continuous(limits=c(0,190))
+  scale_x_continuous(limits=c(0,100),breaks = seq(0,100, by = 10))+
   theme(panel.background =element_blank(),
         axis.line = element_line(color = "black"),
-        legend.position = "top",)
+        legend.position = "bottom",)
 
 fisher_consumer_hist
 
@@ -1746,7 +1747,7 @@ hh_age <- hh_consumers_species_long %>%
   select(c(hh_age,hh_gender_original))
 
 hh_hist <-ggplot(hh_age, aes(x = hh_age, fill = hh_gender_original)) +
-  geom_histogram(binwidth = 10, color = "black") +
+  geom_histogram(binwidth = 10, boundary = 0, color = "black") +
   labs(
     title = "",
     x = "Age",
@@ -1755,12 +1756,31 @@ hh_hist <-ggplot(hh_age, aes(x = hh_age, fill = hh_gender_original)) +
   ) +
   scale_fill_manual(values = c("#ff8900","#15607a","gray"))+
   scale_y_continuous(limits=c(0,20))+
+  scale_x_continuous(limits=c(0,100),breaks = seq(0,100, by = 10) ) +
   theme(panel.background =element_blank(),
         axis.line = element_line(color = "black"),
-        legend.position = "top",)
+        legend.position = "bottom")
 
 hh_hist
 
+####Export
+
+stacked_hist <- fisher_consumer_hist + 
+  ggtitle("Consumers (fishers)") + 
+  hh_hist + 
+  ggtitle("Consumers (household)") + 
+  plot_layout(ncol = 1)  # Stack vertically
+
+# Print the combined plot
+stacked_hist
+
+plot_height <- 1700
+plot_width <- 1700
+
+ggsave(
+  filename = "age_histogram.svg",
+  plot = stacked_hist, width = plot_width, height = plot_height, units = "px", dpi = 300
+)
 
 ```
 

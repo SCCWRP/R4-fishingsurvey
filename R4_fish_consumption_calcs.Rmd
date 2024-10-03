@@ -475,7 +475,7 @@ fish_parts_frequency <- fish_parts_all %>%
 ##Fish consumption by income
 
 ```{r}
-###address missing points & then rerun (currently not seeing sig trend)
+###address missing points & then rerun 
 consumers_x_income <- consumers_long %>%
    separate(Annual_Household_Income, into = c("low_end_income", "high_end_income"), sep = "-", fill = "right", remove=FALSE) %>%
  filter(!low_end_income %in% c("No answer","Unknown")) %>%
@@ -538,7 +538,8 @@ summary(as.factor(fisherdb_consumers$Annual_Household_Income))
 income_counts <- fisherdb_consumers %>%
   group_by(Annual_Household_Income) %>%
   summarise(fisher_count = n()) %>%
-  ungroup()
+  ungroup()#%>%
+  
 
 consumer_income_counts <- fisherdb_consumers %>%
   filter(consumer ==TRUE)%>%
@@ -560,10 +561,14 @@ exceed_thresh_income_counts<- consumers_long %>%
     Annual_Household_Income == "NA" ~ "Not reported / unknown",
     TRUE ~ Annual_Household_Income  # Keep all other values as they are
   ))%>%
+  group_by(rowID, Annual_Household_Income)%>%
+  summarise(any_true = any(exceed_threshold_avg_lake == TRUE, na.rm = TRUE)) %>%
+  ungroup()%>%
   group_by(Annual_Household_Income)%>%
-  summarise(exceed_thresh_count = sum(exceed_threshold_avg_lake == TRUE, na.rm = TRUE)) %>%
+  summarise(exceed_thresh_count = sum(any_true == TRUE, na.rm = TRUE)) %>%
   ungroup()
-
+ 
+ 
 dailyintake_x_income <- consumers_long %>%
     group_by(rowID, Annual_Household_Income) %>%
     filter(daily_intake > 0) %>%
@@ -599,16 +604,20 @@ income_counts <- left_join(income_counts, consumer_income_counts, by = "Annual_H
 income_counts <- left_join(income_counts, exceed_thresh_income_counts, by = "Annual_Household_Income")
 income_counts <- left_join(income_counts, consumption_rate_x_income, by = "Annual_Household_Income")
 
+sum_fishers <- sum(income_counts$fisher_count)
+sum_consumers<- sum(income_counts$consumer_count)
+sum_exceed<- sum(income_counts$exceed_thresh_count)
+
 income_counts <- income_counts %>%
   ungroup()%>%
   filter(!is.na(consumer_count))%>%
-  mutate(percent_consumers = round((consumer_count/fisher_count)*100))%>%
-  mutate(percent_exceed_ofconsumers = round((exceed_thresh_count/consumer_count)*100))%>%
-  mutate(percent_exceed_offishers = round((exceed_thresh_count/fisher_count)*100))%>%
+  mutate(percent_of_fishers = round((fisher_count/sum_fishers)*100))%>%
+  mutate(percent_consumers = round((consumer_count/sum_consumers)*100))%>%
+  mutate(percent_exceed_ofconsumers = round((exceed_thresh_count/ sum_exceed)*100))%>%
   mutate(percent_total = 100)
 
 income_counts_export <- income_counts %>%
-  select(Annual_Household_Income,fisher_count, percent_consumers, consumer_count, percent_exceed_ofconsumers, exceed_thresh_count, n, min, max, mean, median)
+  select(Annual_Household_Income,percent_of_fishers,fisher_count, percent_consumers, consumer_count, percent_exceed_ofconsumers, exceed_thresh_count, n, min, max, mean, median)
 
 write.csv(income_counts_export, file="income_counts.csv", row.names = FALSE)
 
@@ -639,14 +648,14 @@ plot_dailyintake_income
 
 ##Plot (overlaying bars)
 
-income_counts <- income_counts %>% 
-   mutate(Annual_Household_Income = factor(Annual_Household_Income, levels = c("0-20,000",
-                                                  "20,000-50,000", 
-                                                  "50,000-75,000", 
-                                                  "75,000-100,000", 
-                                                  "100,000-150,000",
-                                                  "150,000-200,000",
-                                                  "200,000+")))
+# income_counts <- income_counts %>% 
+#    mutate(Annual_Household_Income = factor(Annual_Household_Income, levels = c("0-20,000",
+#                                                   "20,000-50,000", 
+#                                                   "50,000-75,000", 
+#                                                   "75,000-100,000", 
+#                                                   "100,000-150,000",
+#                                                   "150,000-200,000",
+#                                                   "200,000+")))
 perc_all_income<-ggplot(income_counts, aes(x = Annual_Household_Income)) +
   #geom_bar(aes(y = percent_total , fill= "All Fishers"), stat = "identity") +  # Plot total counts
   geom_bar(aes(y = percent_consumers, fill = "Consumers"), stat = "identity") + # Overlay consumer counts
@@ -670,7 +679,117 @@ ggsave(
 )
 
 ```
-##Fish consumption by race
+
+##Fish consumption by ethnicity
+```{r}
+
+fisherdb_ethnicity <- fisherdb_consumers %>% 
+  mutate(Ethnicity = as.factor(Ethnicity))%>%
+  mutate(Ethnicity = case_when(
+    Ethnicity == "NA" ~ "Prefer not to say / Unknown",
+    Ethnicity == "No answer" ~ "Prefer not to say / Unknown",
+    Ethnicity == "No Answer" ~ "Prefer not to say / Unknown",
+    Ethnicity == "Other/Unknown" ~ "Prefer not to say / Unknown",
+    Ethnicity == "Prefer not to say" ~ "Prefer not to say / Unknown",
+    Ethnicity == "Unknown" ~ "Prefer not to say / Unknown",
+    Ethnicity == "Hispanic or Latino, Asian or Pacific Islander" ~ "Other",
+    Ethnicity == "Hispanic or Latino, White" ~ "Other",
+    Ethnicity == "white" ~ "White",
+    Ethnicity == "Hispanic or LAtino" ~ "Hispanic or Latino",
+    TRUE ~ Ethnicity  # Keep all other values as they are
+  ))
+
+summary(as.factor(fisherdb_ethnicity$Ethnicity))
+
+ethnicity_counts <- fisherdb_ethnicity %>%
+  group_by(Ethnicity) %>%
+  summarise(fisher_count = n()) %>%
+  ungroup()
+  
+
+consumer_ethnicity_counts <- fisherdb_ethnicity %>%
+  filter(consumer ==TRUE)%>%
+  group_by(Ethnicity)%>%
+  summarise(consumer_count = n()) %>%
+  ungroup()
+
+exceed_thresh_ethnicity_counts<- consumers_long %>%
+   mutate(Ethnicity = case_when(
+    Ethnicity == "NA" ~ "Prefer not to say / Unknown",
+    Ethnicity == "No answer" ~ "Prefer not to say / Unknown",
+    Ethnicity == "No Answer" ~ "Prefer not to say / Unknown",
+    Ethnicity == "Other/Unknown" ~ "Prefer not to say / Unknown",
+    Ethnicity == "Prefer not to say" ~ "Prefer not to say / Unknown",
+    Ethnicity == "Unknown" ~ "Prefer not to say / Unknown",
+    Ethnicity == "Hispanic or Latino, Asian or Pacific Islander" ~ "Other",
+    Ethnicity == "Hispanic or Latino, White" ~ "Other",
+    Ethnicity == "white" ~ "White",
+    Ethnicity == "Hispanic or LAtino" ~ "Hispanic or Latino",
+    TRUE ~ Ethnicity  # Keep all other values as they are
+  ))%>%
+  group_by(rowID,Ethnicity)%>%
+  summarise(any_true = any(exceed_threshold_avg_lake == TRUE, na.rm = TRUE))%>%
+  ungroup()%>%
+  group_by(Ethnicity)%>%
+  summarise(exceed_thresh_count_eth = sum(any_true == TRUE, na.rm = TRUE)) %>%
+  ungroup()
+
+##START here
+dailyintake_x_ethnicity <- consumers_long %>%
+    group_by(rowID, Ethnicity) %>%
+    filter(daily_intake > 0) %>%
+    summarise(total_daily_intake = sum(daily_intake, na.rm = TRUE)) %>%
+    mutate(Ethnicity = case_when(
+    Ethnicity == "NA" ~ "Prefer not to say / Unknown",
+    Ethnicity == "No answer" ~ "Prefer not to say / Unknown",
+    Ethnicity == "No Answer" ~ "Prefer not to say / Unknown",
+    Ethnicity == "Other/Unknown" ~ "Prefer not to say / Unknown",
+    Ethnicity == "Prefer not to say" ~ "Prefer not to say / Unknown",
+    Ethnicity == "Unknown" ~ "Prefer not to say / Unknown",
+    Ethnicity == "Hispanic or Latino, Asian or Pacific Islander" ~ "Other",
+    Ethnicity == "Hispanic or Latino, White" ~ "Other",
+    Ethnicity == "white" ~ "White",
+    Ethnicity == "Hispanic or LAtino" ~ "Hispanic or Latino",
+    TRUE ~ Ethnicity  # Keep all other values as they are
+  ))%>%
+  ungroup()
+
+consumption_rate_x_ethnicity <- dailyintake_x_ethnicity  %>%
+  group_by(Ethnicity)%>%
+    summarise(
+      n = n(),
+      min = round(min(total_daily_intake, na.rm = TRUE)),
+      max = round(max(total_daily_intake, na.rm = TRUE)),
+      mean = round(mean(total_daily_intake, na.rm = TRUE)),
+      median = round(median(total_daily_intake, na.rm = TRUE))
+    )%>%
+  ungroup()
+
+
+ethnicity_counts <- left_join(ethnicity_counts, consumer_ethnicity_counts, by = "Ethnicity")
+ethnicity_counts <- left_join(ethnicity_counts, exceed_thresh_ethnicity_counts, by = "Ethnicity")
+ethnicity_counts <- left_join(ethnicity_counts, consumption_rate_x_ethnicity, by = "Ethnicity")
+
+sum_fishers <- sum(ethnicity_counts$fisher_count)
+sum_consumers <- sum(ethnicity_counts$consumer_count, na.rm = TRUE)
+sum_exceed <- sum(ethnicity_counts$exceed_thresh_count_eth, na.rm = TRUE)
+
+ethnicity_counts <- ethnicity_counts %>%
+  ungroup()%>%
+  mutate(
+  percent_of_fishers = round((fisher_count / sum_fishers) * 100),
+    percent_consumers = round((consumer_count / sum_consumers) * 100),
+    percent_exceed_ofconsumers = round((exceed_thresh_count_eth / sum_exceed) * 100),
+    percent_total = 100
+)
+ethnicity_counts_export <- ethnicity_counts %>%
+  select(Ethnicity,percent_of_fishers,fisher_count, percent_consumers, consumer_count, percent_exceed_ofconsumers, exceed_thresh_count_eth, n, min, max, mean, median)
+
+write.csv(ethnicity_counts_export, file="ethnicity_counts.csv", row.names = FALSE)
+
+```
+
+##Fish consumption by ethnicity
 ```{r}
 ###Look into how to test / interpret differences while accounting for relative number of people in each group
 

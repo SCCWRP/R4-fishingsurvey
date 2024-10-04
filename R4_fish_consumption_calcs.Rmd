@@ -2052,11 +2052,11 @@ fisher_consumer_hist <- ggplot(fish_consumers, aes(x = Age, fill = Observed_Gend
     fill = "Gender"
   ) +
   scale_fill_manual(values = c("gray","#ff8900","#15607a"))+
-  scale_y_continuous(limits=c(0,20))+
+  scale_y_continuous(limits=c(0,15))+
   scale_x_continuous(limits=c(0,100),breaks = seq(0,100, by = 10))+
   theme(panel.background =element_blank(),
         axis.line = element_line(color = "black"),
-        legend.position = "bottom",)
+        legend.position = "none",)
 
 fisher_consumer_hist
 
@@ -2065,7 +2065,9 @@ fisher_consumer_hist
 hh_age <- hh_consumers_species_long %>%
   mutate(across(c(hh_gender_original),as.factor))%>%
   filter(hh_daily_intake_per_fish>0)%>%
-  select(c(hh_age,hh_gender_original))
+  group_by(fisherID, household_member,hh_age,hh_gender_original)%>%
+  summarize(sum(hh_daily_intake_per_fish_per_lake))%>%
+  ungroup()
 
 hh_hist <-ggplot(hh_age, aes(x = hh_age, fill = hh_gender_original)) +
   geom_histogram(binwidth = 10, boundary = 0, color = "black") +
@@ -2076,7 +2078,7 @@ hh_hist <-ggplot(hh_age, aes(x = hh_age, fill = hh_gender_original)) +
     fill = "Gender"
   ) +
   scale_fill_manual(values = c("#ff8900","#15607a","gray"))+
-  scale_y_continuous(limits=c(0,20))+
+  scale_y_continuous(limits=c(0,15))+
   scale_x_continuous(limits=c(0,100),breaks = seq(0,100, by = 10) ) +
   theme(panel.background =element_blank(),
         axis.line = element_line(color = "black"),

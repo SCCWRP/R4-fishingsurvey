@@ -45,76 +45,110 @@ names(fisherdb_import)
 
 ###CHECK errors when converting to numeric / factor - are we losing data by introducing NAs
 #Convert to numeric / factor
-fisherdb <- fisherdb_import %>%
-  mutate(across(c(`Past_catches:_Rainbow_Trout,_times_eaten`, 
-                  `Past_catches:_Catfish,_times_eaten`, 
-                  `Past_catches:_Bluegill,_times_eaten`,
-                  `Past_catches:_Common_Carp,_times_eaten`,
-                  `Past_catches:_Bass,_times_eaten`,
-                  `Past_catches:_Crappie,_times_eaten`,
-                  `Past_catches:_Tilapia,_times_eaten`,
-                  `Past_catches:_other,_times_eaten`,
-                  
-                  `Past_catches:_Rainbow_Trout,_amount_eaten`,
-                  `Past_catches:_Catfish,_amount_eaten`,
-                  `Past_catches:_Blue_gill,_amount_eaten`,
-                  `Past_catches:_Common_Carp,_amount_eaten`,
-                  `Past_catches:_Bass,_amount_eaten`,
-                  `Past_catches:_Crappie,_amount_eaten`,
-                  `Past_catches:_Tilapia,_amount_eaten`,
-                  `Past_catches:_other,_amount_eaten`,
-                  
-                  `Age_(Person_1)`,
-                  `Age_(Person_2)`,
-                  `Age_(Person_3)`,
-                  `Age_(Person_4)`,
-                  Age,
-                  
-                  `Amount_eaten_(Person_1)`,
-                  `Amount_eaten_(Person_2)`,
-                  `Amount_eaten_(Person_3)`,
-                  `Amount_eaten_(Person_4)`,
-                  
-                  `Times_eaten_last_4_weeks__(Person_1)`,
-                  `Times_eaten_last_4_weeks__(Person_2)`,
-                  `Times_eaten_last_4_weeks__(Person_3)`,
-                  `Times_eaten_last_4_weeks__(Person_4)`
-                  
-                  ), as.numeric)) %>%
+
+fisherdb <- fisherdb_import
+
+# List of columns to check and convert
+columns_to_convert <- c(
+  "Past_catches:_Catfish,_times_eaten_numeric", 
+  "Past_catches:_Bluegill,_times_eaten_numeric",
+  "Past_catches:_Common_Carp,_times_eaten_numeric",
+  "Past_catches:_Bass,_times_eaten_numeric",
+  "Past_catches:_Crappie,_times_eaten_numeric",
+  "Past_catches:_Tilapia,_times_eaten_numeric",
+  "Past_catches:_other,_times_eaten_numeric",
   
- mutate(across(c( Observed_Gender
- ),as.factor))
+  "Past_catches:_Rainbow_Trout,_amount_eaten_numeric",
+  "Past_catches:_Catfish,_amount_eaten_numeric",
+  "Past_catches:_Blue_gill,_amount_eaten_numeric",
+  "Past_catches:_Common_Carp,_amount_eaten_numeric",
+  "Past_catches:_Bass,_amount_eaten_numeric",
+  "Past_catches:_Crappie,_amount_eaten_numeric",
+  "Past_catches:_Tilapia,_amount_eaten_numeric",
+  "Past_catches:_other,_amount_eaten_numeric",
+  
+  "Amount_eaten_(Person_1)_numeric",
+  "Amount_eaten_(Person_2)_numeric",
+  "Amount_eaten_(Person_3)_numeric",
+  "Amount_eaten_(Person_4)_numeric",
+  
+  "Times_eaten_last_4_weeks__(Person_1)_numeric",
+  "Times_eaten_last_4_weeks__(Person_2)_numeric",
+  "Times_eaten_last_4_weeks__(Person_3)_numeric",
+  "Times_eaten_last_4_weeks__(Person_4)_numeric"
+)
 
-##Confirm NAs introduced are okay
-##Why are NAs not reading in as NA?
-
-summary(as.factor(fisherdb_import$`Past_catches:_Rainbow_Trout,_times_eaten`))
-summary(as.factor(fisherdb_import$`Past_catches:_Catfish,_times_eaten`))
-summary(as.factor(fisherdb_import$`Past_catches:_Bluegill,_times_eaten`))
-summary(as.factor(fisherdb_import$`Past_catches:_Common_Carp,_times_eaten`))
-summary(as.factor(fisherdb_import$`Past_catches:_Bass,_times_eaten`))
-summary(as.factor(fisherdb_import$`Past_catches:_Crappie,_times_eaten`))
-summary(as.factor(fisherdb_import$`Past_catches:_Tilapia,_times_eaten`))
-summary(as.factor(fisherdb_import$`Past_catches:_other,_times_eaten`))
-
-
-original_NA_count <- sum(is.na(as.factor(fisherdb_import$`Past_catches:_Rainbow_Trout,_times_eaten`)))
-new_NA_count <- sum(is.na(fisherdb$`Past_catches:_Rainbow_Trout,_times_eaten`))
-coercion_na_count <- new_NA_count - original_NA_count
-
-# Print out the comparison
-if(coercion_na_count == 0) {
-  print("No new NAs were introduced by coercion.", `Past_catches:_Rainbow_Trout,_times_eaten`)
-} else {
-  print(paste("Number of new NAs introduced by coercion:", coercion_na_count))
+# Convert columns to numeric, check for data loss, and summarize
+for (col in columns_to_convert) {
+  # Create new numeric column
+  numeric_col <- paste0(col)
+  fisherdb[[numeric_col]] <- as.numeric(fisherdb_import[[col]])
+  
+  # Summary of original column as factor
+  cat("Summary of", col, "as factor:\n")
+  print(summary(as.factor(fisherdb_import[[col]])))
+  
+  # Summary of converted column
+  cat("Summary of", numeric_col, ":\n")
+  print(summary(fisherdb[[numeric_col]]))
+  
 }
 
-### TEST
+##After running loop, check output to make sure NAs are introduced appropriately
+
+##Convert age to numeric. Handle ranges by taking the average of the range.
+
+# List of columns to convert
+age_columns <- c("Age_(Person_1)", "Age_(Person_2)", "Age_(Person_3)", "Age_(Person_4)", "Age")
+
+# Function to convert a value to numeric, calculating midpoint if it's a range
+convert_to_midpoint <- function(x) {
+  if (grepl("-", x)) {
+    # Split the range, calculate the midpoint, and convert to numeric
+    range_vals <- as.numeric(strsplit(x, "-")[[1]])
+    return(mean(range_vals, na.rm = TRUE))
+  } else {
+    # Convert to numeric directly if it's a single value
+    return(as.numeric(x))
+  }
+}
+
+# Apply the conversion to each specified column
+fisherdb <- fisherdb %>%
+  mutate(across(
+    all_of(age_columns),
+    ~ sapply(.x, convert_to_midpoint),
+    .names = "{.col}_numeric"))
+
+##Check function performance
+
+age_check <- fisherdb %>% select (`Age_(Person_1)`, `Age_(Person_1)_numeric`,
+                                  `Age_(Person_2)`, `Age_(Person_2)_numeric`,
+                                  `Age_(Person_3)`, `Age_(Person_3)_numeric`,
+                                  `Age_(Person_4)`, `Age_(Person_4)_numeric`,
+                                  Age, Age_numeric)
+  
+### Convert gender to factor
+fisherdb <- fisherdb %>%
+   mutate(across(c( 
+     Observed_Gender,
+     `Gender_(Person_1)`,
+     `Gender_(Person_2)`,
+     `Gender_(Person_3)`,
+     `Gender_(Person_4)`
+ ),as.factor))
+
+###Check gender conversion
+summary(fisherdb$Observed_Gender)
+summary(fisherdb$`Gender_(Person_1)`)
+summary(fisherdb$`Gender_(Person_2)`)
+summary(fisherdb$`Gender_(Person_3)`)
+summary(fisherdb$`Gender_(Person_4)`)
 
 
 ```
 
-#Identify unique lakes
+#Identify unique lake names used in database
 ```{r}
 #using unlist and strsplit1
 lake_names <- unlist(strsplit(c(fisherdb$Likely_Fishing_Location_1, 
@@ -140,9 +174,11 @@ unique_lake_names_key <- read.csv("unique_lake_names_key.csv",strip.white = TRUE
 ##Join lakes & key to identify if any missed
 
 df_unique_lake_names <- as.data.frame(unique_lake_names)
+unique_lake_names_key <- unique_lake_names_key %>%
+  mutate(original_name = trimws(original_name))
 anti_join_lakes <- anti_join(df_unique_lake_names, unique_lake_names_key, by=c("unique_lake_names" = "original_name"))
 
-#write.csv(anti_join_lakes, "anti_join_lakes.csv", row.names = FALSE)
+write.csv(anti_join_lakes, "anti_join_lakes.csv", row.names = FALSE)
 ```
 
 

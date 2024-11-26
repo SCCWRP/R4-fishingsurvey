@@ -385,7 +385,7 @@ consumers_long <- consumers %>%
   mutate(Lakes = trimws(Lakes))%>%
   # Step 3: Select the columns to keep
   select(rowID, Age_numeric, Observed_Gender, Catches_Info, Lakes, starts_with("Past_catches:") & ends_with(",_times_eaten_numeric"), starts_with("Past_catches:") & ends_with(",_amount_eaten_numeric"),
-        starts_with("Past_catches:") & ends_with("parts_eaten"),`Past_catches:_Other,_list_species`, Annual_Household_Income, Number_in_household, Ethnicity) %>%
+        starts_with("Past_catches:") & ends_with("parts_eaten"),`Past_catches:_Other,_list_species`, Annual_Household_Income, Number_in_household, Ethnicity)  %>%
   rename(`Past_catches:_Bluegill,_amount_eaten_numeric`= `Past_catches:_Blue_gill,_amount_eaten_numeric`)%>% 
   ### If person specified a specific number of times fish eaten from each lake, separate these manually
   separate(Lakes, into = c("Lakes", "times_from_lake"), sep = "\\(", fill = "right") %>%
@@ -468,6 +468,9 @@ consumers_long <- consumers_long %>%
       `Past_catches:_Other,_list_species` != "NA" ~ `Past_catches:_Other,_list_species`,
     TRUE ~ Catches_Info
   ))
+
+##NAs 451, 0 = 30 
+
 
 updated_rows <- consumers_long %>%
   filter(Catches_Info != "Other" & !is.na(`Past_catches:_Other,_list_species`) & `Past_catches:_Other,_list_species` != "NA" )
@@ -662,7 +665,7 @@ consumers_long <- consumers_long %>%
 datacheck <- consumers_long %>% select(rowID, Catches_Info, updated_lake_name, threshold_g_day, avg_threshold)
 
 ##Subset to only rows with daily intake greater than zero
-summary((consumers_long$daily_intake))
+summary(as.factor(consumers_long$daily_intake))
 #451 NAs # 30 obs = 0 # final obs after filter should be 636-451-30 = 155
 
 consumers_long <- consumers_long %>% 
@@ -674,8 +677,16 @@ consumers_long <- consumers_long %>%
 write.csv(consumers_long, "consumers_long.csv", , row.names = FALSE)
 
 ##Remove extra columns from consumers long dataframe
-
-
+consumers_long <- consumers_long %>%
+  select(
+    "rowID","Age_numeric", "Observed_Gender","Catches_Info",
+    "Annual_Household_Income","Number_in_household", "Ethnicity",
+    "daily_intake","number_lakes","daily_intake_per_lake",
+    "updated_lake_name","county",
+    "Age_Category", "column","threshold_g_day","threshold_used",
+    "OEHHA_fish_names","avg_threshold","exceed_threshold_indiv_lake","exceed_threshold_avg_lake" 
+    
+  )
 
 ```
 ##Parts of fish consumed

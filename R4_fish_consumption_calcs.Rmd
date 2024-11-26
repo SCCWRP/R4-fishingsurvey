@@ -50,6 +50,7 @@ fisherdb <- fisherdb_import
 
 # List of columns to check and convert
 columns_to_convert <- c(
+  "Past_catches:_Rainbow_Trout,_times_eaten_numeric",
   "Past_catches:_Catfish,_times_eaten_numeric", 
   "Past_catches:_Bluegill,_times_eaten_numeric",
   "Past_catches:_Common_Carp,_times_eaten_numeric",
@@ -95,7 +96,9 @@ for (col in columns_to_convert) {
 }
 
 ##After running loop, check output to make sure NAs are introduced appropriately
-
+###"unknowns" converted to "NA" in numerical conversion
+###"not surveyed" converted to "NA" in numerical conversion
+###"no answer" converted to "NA" in numerical conversion
 ##Convert age to numeric. Handle ranges by taking the average of the range.
 
 # List of columns to convert
@@ -127,7 +130,8 @@ age_check <- fisherdb %>% select (`Age_(Person_1)`, `Age_(Person_1)_numeric`,
                                   `Age_(Person_3)`, `Age_(Person_3)_numeric`,
                                   `Age_(Person_4)`, `Age_(Person_4)_numeric`,
                                   Age, Age_numeric)
-  
+###Check 
+ 
 ### Convert gender to factor
 fisherdb <- fisherdb %>%
    mutate(across(c( 
@@ -186,62 +190,91 @@ write.csv(anti_join_lakes, "anti_join_lakes.csv", row.names = FALSE)
 ```{r}
 ##Subset to only fish consumers (<4 weeks)
 consumers <- fisherdb %>% filter(
-                  `Past_catches:_Rainbow_Trout,_times_eaten` >0 |
-                  `Past_catches:_Catfish,_times_eaten`>0 |
-                  `Past_catches:_Bluegill,_times_eaten`>0|
-                  `Past_catches:_Common_Carp,_times_eaten`>0 |
-                  `Past_catches:_Bass,_times_eaten`>0 |
-                  `Past_catches:_Crappie,_times_eaten`>0 |
-                  `Past_catches:_Tilapia,_times_eaten`>0|
-                  `Past_catches:_other,_times_eaten`>0
+                  `Past_catches:_Rainbow_Trout,_times_eaten_numeric` >0 |
+                  `Past_catches:_Catfish,_times_eaten_numeric`>0 |
+                  `Past_catches:_Bluegill,_times_eaten_numeric`>0|
+                  `Past_catches:_Common_Carp,_times_eaten_numeric`>0 |
+                  `Past_catches:_Bass,_times_eaten_numeric`>0 |
+                  `Past_catches:_Crappie,_times_eaten_numeric`>0 |
+                  `Past_catches:_Tilapia,_times_eaten_numeric`>0|
+                  `Past_catches:_other,_times_eaten_numeric`>0
 )
+
+##verify consumer subset
+RT_consumers <- fisherdb %>% filter(`Past_catches:_Rainbow_Trout,_times_eaten_numeric` >0)
+nrow(RT_consumers)
+cat_consumers <- fisherdb %>% filter(`Past_catches:_Catfish,_times_eaten_numeric`>0)
+nrow(cat_consumers)
+BG_consumers <- fisherdb %>% filter(`Past_catches:_Bluegill,_times_eaten_numeric`>0)
+nrow(BG_consumers)
+CC_consumers <- fisherdb %>% filter(`Past_catches:_Common_Carp,_times_eaten_numeric`>0)
+nrow(CC_consumers)
+Bass_consumers <- fisherdb %>% filter(`Past_catches:_Bass,_times_eaten_numeric`>0)
+nrow(Bass_consumers)
+Crappie_consumers <- fisherdb %>% filter(`Past_catches:_Crappie,_times_eaten_numeric`>0)
+nrow(Crappie_consumers)
+Tilapia_consumers <- fisherdb %>% filter(`Past_catches:_Tilapia,_times_eaten_numeric`>0)
+nrow(Tilapia_consumers)
+Other_consumers <- fisherdb %>% filter(`Past_catches:_other,_times_eaten_numeric`>0)
+nrow(Other_consumers)
+
 
 ###Calculate consumption
 
 consumers <- consumers %>%
   mutate(
     rainbow_trout_g_day = na_if(
-      ((`Past_catches:_Rainbow_Trout,_times_eaten` * `Past_catches:_Rainbow_Trout,_amount_eaten` * 227) / 28), 0),
+      ((`Past_catches:_Rainbow_Trout,_times_eaten_numeric`*`Past_catches:_Rainbow_Trout,_amount_eaten_numeric` * 227) / 28), 0),
     catfish_g_day = na_if(
-      ((`Past_catches:_Catfish,_times_eaten` * `Past_catches:_Catfish,_amount_eaten` * 227) / 28), 0),
+      ((`Past_catches:_Catfish,_times_eaten_numeric`*`Past_catches:_Catfish,_amount_eaten_numeric` * 227) / 28), 0),
     bluegill_g_day = na_if(
-      ((`Past_catches:_Bluegill,_times_eaten` * `Past_catches:_Blue_gill,_amount_eaten` * 227) / 28), 0),
+      ((`Past_catches:_Bluegill,_times_eaten_numeric`*`Past_catches:_Blue_gill,_amount_eaten_numeric` * 227) / 28), 0),
     carp_g_day = na_if(
-      ((`Past_catches:_Common_Carp,_times_eaten` * `Past_catches:_Common_Carp,_amount_eaten` * 227) / 28), 0),
+      ((`Past_catches:_Common_Carp,_times_eaten_numeric`*`Past_catches:_Common_Carp,_amount_eaten_numeric` * 227) / 28), 0),
     bass_g_day = na_if(
-      ((`Past_catches:_Bass,_times_eaten` * `Past_catches:_Bass,_amount_eaten` * 227) / 28), 0),
+      ((`Past_catches:_Bass,_times_eaten_numeric`*`Past_catches:_Bass,_amount_eaten_numeric` * 227) / 28), 0),
     crappie_g_day = na_if(
-      ((`Past_catches:_Crappie,_times_eaten` * `Past_catches:_Crappie,_amount_eaten` * 227) / 28), 0),
+      ((`Past_catches:_Crappie,_times_eaten_numeric`*`Past_catches:_Crappie,_amount_eaten_numeric` * 227) / 28), 0),
     tilapia_g_day = na_if(
-      ((`Past_catches:_Tilapia,_times_eaten` * `Past_catches:_Tilapia,_amount_eaten` * 227) / 28), 0),
+      ((`Past_catches:_Tilapia,_times_eaten_numeric`*`Past_catches:_Tilapia,_amount_eaten_numeric` * 227) / 28), 0),
     other_g_day = na_if(
-      ((`Past_catches:_other,_times_eaten` * `Past_catches:_other,_amount_eaten` * 227) / 28), 0)
+      ((`Past_catches:_other,_times_eaten_numeric`*`Past_catches:_other,_amount_eaten_numeric` * 227) / 28), 0)
   )
 
-    
-ggplot(consumers, aes(x= `Past_catches:_Rainbow_Trout,_times_eaten,_where`, y=rainbow_trout_g_day))+
-  geom_point()+  coord_flip()
-ggplot(consumers, aes(x= `Past_catches:_Catfish,_times_eaten,_where`, y=catfish_g_day))+
-  geom_point()+coord_flip()
-ggplot(consumers, aes(x= `Past_catches:_Bluegill,_times_eaten,_where`, y=bluegill_g_day))+
-  geom_point()+coord_flip()
-ggplot(consumers, aes(x= `Past_catches:_Common_Carp,_times_eaten,_where`, y=carp_g_day))+
-  geom_point()+coord_flip()
-ggplot(consumers, aes(x= `Past_catches:_Bass,_times_eaten,_where`, y=bass_g_day))+
-  geom_point()+coord_flip()
-ggplot(consumers, aes(x= `Past_catches:_Crappie,_times_eaten,_where`, y=crappie_g_day))+
-  geom_point()+coord_flip()
-ggplot(consumers, aes(x= `Past_catches:_Tilapia,_times_eaten,_where`, y=tilapia_g_day))+
-  geom_point()+coord_flip()
-ggplot(consumers, aes(x= `Past_catches:_Other,_times_eaten,_where`, y=other_g_day))+
-  geom_point()+coord_flip()
+# ##Check consumption calcs
+# consumption_check <- consumers %>% select(
+#   `Past_catches:_Rainbow_Trout,_times_eaten_numeric`,`Past_catches:_Rainbow_Trout,_amount_eaten_numeric`,rainbow_trout_g_day,
+#   catfish_g_day,`Past_catches:_Catfish,_times_eaten_numeric`,`Past_catches:_Catfish,_amount_eaten_numeric`,
+#   bluegill_g_day,`Past_catches:_Bluegill,_times_eaten_numeric`,`Past_catches:_Blue_gill,_amount_eaten_numeric`,
+#   carp_g_day,`Past_catches:_Common_Carp,_times_eaten_numeric`,`Past_catches:_Common_Carp,_amount_eaten_numeric`,
+#   bass_g_day,`Past_catches:_Bass,_times_eaten_numeric`,`Past_catches:_Bass,_amount_eaten_numeric`,
+#   crappie_g_day, `Past_catches:_Crappie,_times_eaten_numeric`,`Past_catches:_Crappie,_amount_eaten_numeric`,
+#   tilapia_g_day,`Past_catches:_Tilapia,_times_eaten_numeric`,`Past_catches:_Tilapia,_amount_eaten_numeric`,
+#   other_g_day,`Past_catches:_other,_times_eaten_numeric`,`Past_catches:_other,_amount_eaten_numeric`
+#   )
+# 
+# # write.csv(consumption_check, "consumption_check.csv", row.names = FALSE)
+#     
+# ggplot(consumers, aes(x= `Past_catches:_Rainbow_Trout,_times_eaten,_where`, y=rainbow_trout_g_day))+
+#   geom_point()+  coord_flip()
+# ggplot(consumers, aes(x= `Past_catches:_Catfish,_times_eaten,_where`, y=catfish_g_day))+
+#   geom_point()+coord_flip()
+# ggplot(consumers, aes(x= `Past_catches:_Bluegill,_times_eaten,_where`, y=bluegill_g_day))+
+#   geom_point()+coord_flip()
+# ggplot(consumers, aes(x= `Past_catches:_Common_Carp,_times_eaten,_where`, y=carp_g_day))+
+#   geom_point()+coord_flip()
+# ggplot(consumers, aes(x= `Past_catches:_Bass,_times_eaten,_where`, y=bass_g_day))+
+#   geom_point()+coord_flip()
+# ggplot(consumers, aes(x= `Past_catches:_Crappie,_times_eaten,_where`, y=crappie_g_day))+
+#   geom_point()+coord_flip()
+# ggplot(consumers, aes(x= `Past_catches:_Tilapia,_times_eaten,_where`, y=tilapia_g_day))+
+#   geom_point()+coord_flip()
+# ggplot(consumers, aes(x= `Past_catches:_Other,_times_eaten,_where`, y=other_g_day))+
+#   geom_point()+coord_flip()
 
 
 
 ```
-###Test- create loop for OEHHA thresholds
-
-
 
 #Compare consumption rate to statewide OEHHA thresholds
 ```{r}
@@ -280,6 +313,11 @@ advisories_long <- advisories %>%
       .default = NA
   ))
 
+#Check fish names match
+# summary_1 <- as.data.frame(summary(advisories_long$OEHHA_fish_names))
+# summary_2 <- as.data.frame(summary(advisories_long$join_fish_names))
+
+
 consumers_long <- consumers %>%
   mutate(rowID = 1:nrow(.)) %>%
   # Step 1: Gather the relevant columns into long format
@@ -294,19 +332,19 @@ consumers_long <- consumers %>%
   mutate(Catches_Info = gsub("_", " ", Catches_Info)) %>%
   mutate(Lakes = trimws(Lakes))%>%
   # Step 3: Select the columns to keep
-  select(rowID, Age, Observed_Gender, Catches_Info, Lakes, starts_with("Past_catches:") & ends_with(",_times_eaten"), starts_with("Past_catches:") & ends_with(",_amount_eaten"),
-        starts_with("Past_catches:") & ends_with("parts_eaten"), Annual_Household_Income, Number_in_household, Ethnicity) %>%
-  rename(`Past_catches:_Bluegill,_amount_eaten`= `Past_catches:_Blue_gill,_amount_eaten`) %>% 
+  select(rowID, Age_numeric, Observed_Gender, Catches_Info, Lakes, starts_with("Past_catches:") & ends_with(",_times_eaten_numeric"), starts_with("Past_catches:") & ends_with(",_amount_eaten_numeric"),
+        starts_with("Past_catches:") & ends_with("parts_eaten"),`Past_catches:_Other,_list_species`, Annual_Household_Income, Number_in_household, Ethnicity) %>%
+  rename(`Past_catches:_Bluegill,_amount_eaten_numeric`= `Past_catches:_Blue_gill,_amount_eaten_numeric`) %>% 
   ###Calculate consumption rate of each fish at each lake per person
   mutate(daily_intake = case_when(
-    Catches_Info == "Rainbow Trout" ~ `Past_catches:_Rainbow_Trout,_times_eaten` * `Past_catches:_Rainbow_Trout,_amount_eaten`,
-    Catches_Info == "Catfish" ~ `Past_catches:_Catfish,_times_eaten` * `Past_catches:_Catfish,_amount_eaten`,
-    Catches_Info == "Common Carp" ~ `Past_catches:_Common_Carp,_times_eaten` * `Past_catches:_Common_Carp,_amount_eaten`,
-    Catches_Info == "Crappie" ~ `Past_catches:_Crappie,_times_eaten` * `Past_catches:_Crappie,_amount_eaten`,
-    Catches_Info == "other" ~ `Past_catches:_other,_times_eaten` * `Past_catches:_other,_amount_eaten`,
-    Catches_Info == "Tilapia" ~ `Past_catches:_Tilapia,_times_eaten` * `Past_catches:_Tilapia,_amount_eaten`,
-    Catches_Info == "Bluegill" ~ `Past_catches:_Bluegill,_times_eaten` * `Past_catches:_Bluegill,_amount_eaten`,
-    Catches_Info == "Bass" ~ `Past_catches:_Bass,_times_eaten` * `Past_catches:_Bass,_amount_eaten`,
+    Catches_Info == "Rainbow Trout" ~ `Past_catches:_Rainbow_Trout,_times_eaten_numeric` * `Past_catches:_Rainbow_Trout,_amount_eaten_numeric`,
+    Catches_Info == "Catfish" ~ `Past_catches:_Catfish,_times_eaten_numeric` * `Past_catches:_Catfish,_amount_eaten_numeric`,
+    Catches_Info == "Common Carp" ~ `Past_catches:_Common_Carp,_times_eaten_numeric` * `Past_catches:_Common_Carp,_amount_eaten_numeric`,
+    Catches_Info == "Crappie" ~ `Past_catches:_Crappie,_times_eaten_numeric` * `Past_catches:_Crappie,_amount_eaten_numeric`,
+    Catches_Info == "Other" ~ `Past_catches:_other,_times_eaten_numeric` * `Past_catches:_other,_amount_eaten_numeric`,
+    Catches_Info == "Tilapia" ~ `Past_catches:_Tilapia,_times_eaten_numeric` * `Past_catches:_Tilapia,_amount_eaten_numeric`,
+    Catches_Info == "Bluegill" ~ `Past_catches:_Bluegill,_times_eaten_numeric` * `Past_catches:_Bluegill,_amount_eaten_numeric`,
+    Catches_Info == "Bass" ~ `Past_catches:_Bass,_times_eaten_numeric` * `Past_catches:_Bass,_amount_eaten_numeric`,
     .default = NA
   )) %>%
   mutate(daily_intake = (daily_intake * 227)/28) %>%
@@ -315,7 +353,24 @@ consumers_long <- consumers %>%
   ungroup() %>%
   mutate(daily_intake_per_lake = daily_intake/number_lakes) %>% 
   separate(Lakes, into = c("Lakes", "times_from_lake"), sep = "\\(", fill = "right") %>%
-  mutate(Lakes = trimws(Lakes))
+  mutate(Lakes = trimws(Lakes))%>%
+  mutate(Catches_Info = case_when(
+    Catches_Info == "Other" & !is.na(`Past_catches:_Other,_list_species`) & 
+      `Past_catches:_Other,_list_species` != "NA" ~ `Past_catches:_Other,_list_species`,
+    TRUE ~ Catches_Info
+  ))
+
+updated_rows <- consumers_long %>%
+  filter(Catches_Info != "Other" & !is.na(`Past_catches:_Other,_list_species`) & `Past_catches:_Other,_list_species` != "NA" )
+
+print(updated_rows)
+
+#write.csv(consumers_long, "consumers_long.csv", row.names = FALSE)
+# count_unique_rowID <- consumers_long %>%
+#   filter(number_lakes > 1) %>%
+#   distinct(rowID) %>%
+#   count()
+#count_unique_rowID
 
 ###extract lake names to update key
 lake_names <- consumers_long$Lakes
@@ -338,38 +393,77 @@ consumers_long <- consumers_long %>%
   left_join(unique_lake_names_key %>%
               select(original_name, lake , county), by = c("Lakes" = "original_name")) %>%
   rename(updated_lake_name = lake) %>%
+   mutate(
+    # Track if the lake name was updated
+    lake_name_changed = case_when(
+      is.na(updated_lake_name) ~ "Missing Match",       # No match in the key
+      Lakes != updated_lake_name ~ "Updated",          # Lake name was changed
+      TRUE ~ "Unchanged"                               # Lake name stayed the same
+    )
+  ) %>%
   mutate(Observed_Gender = as.character(Observed_Gender)) %>%
-  mutate(Observed_Gender = ifelse(Age < 18, "Child", Observed_Gender)) %>%
   mutate(Age_Category =  case_when(
-    Age < 18 ~ "< 18",
-    Age >= 18 & Observed_Gender == "Male" ~ ">= 18",
-    Age >= 18 & Age < 50 & Observed_Gender == "Female" ~ "18 - 49",
-    Age > 50 & Observed_Gender == "Female" ~ ">= 50",
+    Age_numeric < 18 ~ "< 18",
+    Age_numeric >= 18 & Observed_Gender == "Male" ~ ">= 18",
+    Age_numeric >= 18 & Age_numeric < 50 & Observed_Gender == "Female" ~ "18 - 49",
+    Age_numeric > 50 & Observed_Gender == "Female" ~ ">= 50",
     .default = NA
-  ))
+   )
+  )
+
+
+Lake_name_check <- consumers_long %>% select(Lakes,updated_lake_name, lake_name_changed)
+age_check <- consumers_long %>% select(Age_numeric, Observed_Gender, Age_Category)
 
 ##update fish names to match OEHHA categories
 consumers_long <- consumers_long %>%
-  mutate (Catches_Info = case_when(
-    Catches_Info == "Rainbow Trout" ~ "Rainbow trout",
-    Catches_Info == "Catfish" ~ "Catfish",
-    Catches_Info == "Bluegill" ~ "Sunfish species",
-    Catches_Info == "Common Carp" ~ "Common carp",
-    Catches_Info == "Bass" ~ "Black bass species",
-    Catches_Info == "Crappie" ~ "Crappie",
-    Catches_Info == "Tilapia"   ~ "Tilapia"  ,
-    Catches_Info == "Other" ~ "Other",
-    
-  ))
-#datacheck <- consumers_long %>% select(Catches_Info, fish)
-  
-##checking age categories
+  mutate(
+    original_Catches_Info = Catches_Info,  # Save the original value for comparison
+    Catches_Info = case_when(
+      Catches_Info == "Rainbow Trout" ~ "Rainbow trout",
+      Catches_Info == "Catfish" ~ "Catfish",
+      Catches_Info == "Bluegill" ~ "Sunfish species",
+      Catches_Info == "Common Carp" ~ "Common carp",
+      Catches_Info == "Bass" ~ "Black bass species",
+      Catches_Info == "Crappie" ~ "Crappie",
+      Catches_Info == "Tilapia" ~ "Tilapia",
+      Catches_Info == "Other" ~ "Other",
+      Catches_Info == "Striped Bass" ~ "Striped bass",
+      Catches_Info == "Redear sunfish" ~ "Sunfish species",
+      TRUE ~ Catches_Info  # Retain the original value if no match
+    ),
+    Catches_Info_changed = case_when(
+      original_Catches_Info == Catches_Info ~ "Unchanged",
+      TRUE ~ "Updated"
+    ))
 
-age_check <- consumers_long %>% select (rowID,Observed_Gender, Age, Age_Category)
+# Identify grouped rows
+# grouped_rows <- consumers_long %>%
+#   group_by(rowID, Age_numeric, Observed_Gender, Catches_Info, Lakes) %>%
+#   filter(n() > 1) %>%  # Keep only groups with more than one row
+#   ungroup()
+# 
+# 
+# # consumers_long <- consumers_long %>%
+# #   group_by(rowID, Age_numeric, Observed_Gender, Catches_Info, Lakes) %>%
+# #   summarise(
+# #     daily_intake_per_lake = sum(daily_intake_per_lake, na.rm = TRUE), # Sum the daily intake
+# #     .groups = "drop" # Ungroup after summarising
+# #   )
+
+fish_name_check <- consumers_long %>% select(original_Catches_Info, Catches_Info, Catches_Info_changed)
+
+consumers_long <- consumers_long %>% select (-Catches_Info_changed, -original_Catches_Info)
+
+# Trim whitespace from both columns before the join
+advisories_long <- advisories_long %>%
+  mutate(lake = str_trim(lake))
+
+consumers_long <- consumers_long %>%
+  mutate(updated_lake_name = str_trim(updated_lake_name))
 
 ##Check that advisory categories match
-unique_lake_names_key <- read.csv("unique_lake_names_key.csv")
-anti_join_lakes <- anti_join(advisories_long, consumers_long, by=c("lake" = "updated_lake_name"))
+anti_join_lakes <- anti_join(consumers_long, advisories_long, by=c("updated_lake_name" = "lake"))
 print(list(unique(anti_join_lakes$lake)))
 
 ##Create separate dataset for statewide framework
@@ -382,7 +476,7 @@ statewide_adv <- advisories_long %>% filter(
 
 
 ##Join consumers with advisories
-  consumers_long <- consumers_long  %>%
+  consumers_long_adv <- consumers_long  %>%
   left_join(advisories_long, by = c("updated_lake_name" = "lake", 
                                     "Age_Category" = "Age", 
                                     "Observed_Gender" = "Gender",
@@ -391,6 +485,25 @@ statewide_adv <- advisories_long %>% filter(
    rename(county = county.x)%>%
    select(-county.y)
   
+  # Check for unmatched rows
+unmatched_rows <- anti_join(consumers_long, advisories_long, by = c(
+  "updated_lake_name" = "lake", 
+  "Age_Category" = "Age", 
+  "Observed_Gender" = "Gender",
+  "Catches_Info" = "join_fish_names"
+))
+
+matched_rows <- consumers_long_adv %>% select(Catches_Info, Lakes, updated_lake_name, OEHHA_fish_names, column, threshold_g_day)%>%
+  filter(!is.na(Lakes) & Lakes != "NA")%>%
+  filter(!is.na(OEHHA_fish_names) & OEHHA_fish_names != "NA")
+unmatched_rows <- unmatched_rows %>% filter(!is.na(Lakes) & Lakes != "NA")
+
+#swap name back
+consumers_long <- consumers_long_adv
+consumers_long_adv <- NULL
+
+###CONTINUE QA here
+
 ##Fill in statewide advisories for lakes/fish where there are no lake specific consumption data
 # Perform the left join only on the rows that meet the condition
 joined_data <- consumers_long %>%

@@ -386,8 +386,60 @@ consumers_long <- consumers %>%
   # Step 3: Select the columns to keep
   select(rowID, Age_numeric, Observed_Gender, Catches_Info, Lakes, starts_with("Past_catches:") & ends_with(",_times_eaten_numeric"), starts_with("Past_catches:") & ends_with(",_amount_eaten_numeric"),
         starts_with("Past_catches:") & ends_with("parts_eaten"),`Past_catches:_Other,_list_species`, Annual_Household_Income, Number_in_household, Ethnicity) %>%
-  rename(`Past_catches:_Bluegill,_amount_eaten_numeric`= `Past_catches:_Blue_gill,_amount_eaten_numeric`) %>% 
+  rename(`Past_catches:_Bluegill,_amount_eaten_numeric`= `Past_catches:_Blue_gill,_amount_eaten_numeric`)%>% 
+  ### If person specified a specific number of times fish eaten from each lake, separate these manually
+  separate(Lakes, into = c("Lakes", "times_from_lake"), sep = "\\(", fill = "right") %>%
+  mutate(times_from_lake = str_extract(times_from_lake, "\\d+"),
+         times_from_lake = as.numeric(times_from_lake)) %>%
+  
+  # Update Past_catches columns based on times_from_lake and Catches_Info
+  mutate(
+    `Past_catches:_Rainbow_Trout,_times_eaten_numeric` = if_else(
+      Catches_Info == "Rainbow Trout" & !is.na(times_from_lake),
+      times_from_lake,
+      `Past_catches:_Rainbow_Trout,_times_eaten_numeric`
+    ),
+    `Past_catches:_Catfish,_times_eaten_numeric` = if_else(
+      Catches_Info == "Catfish" & !is.na(times_from_lake),
+      times_from_lake,
+      `Past_catches:_Catfish,_times_eaten_numeric`
+    ),
+    `Past_catches:_Bluegill,_times_eaten_numeric` = if_else(
+      Catches_Info == "Bluegill" & !is.na(times_from_lake),
+      times_from_lake,
+      `Past_catches:_Bluegill,_times_eaten_numeric`
+    ),
+    `Past_catches:_Bass,_times_eaten_numeric` = if_else(
+      Catches_Info == "Bass" & !is.na(times_from_lake),
+      times_from_lake,
+      `Past_catches:_Bass,_times_eaten_numeric`
+    ),
+    `Past_catches:_Common_Carp,_times_eaten_numeric` = if_else(
+      Catches_Info == "Common Carp" & !is.na(times_from_lake),
+      times_from_lake,
+      `Past_catches:_Common_Carp,_times_eaten_numeric`
+    ),
+    `Past_catches:_Crappie,_amount_eaten_numeric` = if_else(
+      Catches_Info == "Crappie" & !is.na(times_from_lake),
+      times_from_lake,
+      `Past_catches:_Crappie,_amount_eaten_numeric`
+    ),
+    `Past_catches:_Tilapia,_times_eaten_numeric` = if_else(
+      Catches_Info == "Tilapia" & !is.na(times_from_lake),
+      times_from_lake,
+      `Past_catches:_Tilapia,_times_eaten_numeric`
+    ),
+    `Past_catches:_other,_times_eaten_numeric` = if_else(
+      Catches_Info == "Other" & !is.na(times_from_lake),
+      times_from_lake,
+      `Past_catches:_other,_times_eaten_numeric`
+    )
+  )
+  
+
+
   ###Calculate consumption rate of each fish at each lake per person
+consumers_long <- consumers_long %>% 
   mutate(daily_intake = case_when(
     Catches_Info == "Rainbow Trout" ~ `Past_catches:_Rainbow_Trout,_times_eaten_numeric` * `Past_catches:_Rainbow_Trout,_amount_eaten_numeric`,
     Catches_Info == "Catfish" ~ `Past_catches:_Catfish,_times_eaten_numeric` * `Past_catches:_Catfish,_amount_eaten_numeric`,
@@ -403,8 +455,13 @@ consumers_long <- consumers %>%
   group_by(Catches_Info, rowID) %>%
   mutate(number_lakes = n()) %>%
   ungroup() %>%
+  mutate(
+    number_lakes = if_else(
+      !is.na(times_from_lake),
+      1,
+      number_lakes)) %>%
+  
   mutate(daily_intake_per_lake = daily_intake/number_lakes) %>% 
-  separate(Lakes, into = c("Lakes", "times_from_lake"), sep = "\\(", fill = "right") %>%
   mutate(Lakes = trimws(Lakes))%>%
   mutate(Catches_Info = case_when(
     Catches_Info == "Other" & !is.na(`Past_catches:_Other,_list_species`) & 
@@ -615,6 +672,8 @@ consumers_long <- consumers_long %>%
 ##During data clean up - check NAs here. Explore why.
 ##Need to check code to make sure things are filtering & calculating as expected
 write.csv(consumers_long, "consumers_long.csv", , row.names = FALSE)
+
+##Remove extra columns from consumers long dataframe
 
 
 

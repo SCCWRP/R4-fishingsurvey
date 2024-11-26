@@ -241,7 +241,23 @@ consumers <- consumers %>%
       ((`Past_catches:_other,_times_eaten_numeric`*`Past_catches:_other,_amount_eaten_numeric` * 227) / 28), 0)
   )
 
-# ##Check consumption calcs
+
+
+###Remove extra data from environment
+
+age_check <- NULL
+RT_consumers <- NULL
+cat_consumers <- NULL
+BG_consumers <- NULL
+CC_consumers <- NULL
+Bass_consumers <- NULL
+Crappie_consumers <- NULL
+Tilapia_consumers <- NULL
+Other_consumers <- NULL
+
+
+
+###Check consumption calcs
 # consumption_check <- consumers %>% select(
 #   `Past_catches:_Rainbow_Trout,_times_eaten_numeric`,`Past_catches:_Rainbow_Trout,_amount_eaten_numeric`,rainbow_trout_g_day,
 #   catfish_g_day,`Past_catches:_Catfish,_times_eaten_numeric`,`Past_catches:_Catfish,_amount_eaten_numeric`,
@@ -313,6 +329,42 @@ advisories_long <- advisories %>%
       .default = NA
   ))
 
+##In advisories_long change gender "child" to two duplicate rows where Gender is "Male" or "Female"
+
+# Identify rows with Gender == "Child"
+child_rows <- advisories_long %>%
+  filter(Gender == "Child")
+
+# Duplicate these rows with Gender as "Male" and "Female"
+expanded_rows <- child_rows %>%
+  mutate(Gender = "Male") %>%
+  bind_rows(child_rows %>% mutate(Gender = "Female"))
+
+# Append the new rows to the original dataframe, excluding the original "Child" rows
+advisories_long_updated <- advisories_long %>%
+  filter(Gender != "Child") %>%
+  bind_rows(expanded_rows)
+
+# Check: Count original "Child" rows and verify new rows added
+child_count <- nrow(child_rows)
+added_rows_count <- nrow(expanded_rows)
+print(paste("Number of original 'Child' rows replaced:", child_count))
+print(paste("Number of new rows added:", added_rows_count))
+print(paste("Expected added rows (2x original 'Child' rows):", child_count * 2))
+
+# Verify the resulting Gender column
+print("Unique Gender values after update:")
+print(unique(advisories_long_updated$Gender))
+
+##Rename and remove extra data from enviornment
+
+advisories_long <- advisories_long_updated
+advisories_long_updated <- NULL
+child_rows <- NULL
+expanded_rows <- NULL
+child_count <- NULL
+added_rows_count <- NULL
+
 #Check fish names match
 # summary_1 <- as.data.frame(summary(advisories_long$OEHHA_fish_names))
 # summary_2 <- as.data.frame(summary(advisories_long$join_fish_names))
@@ -362,8 +414,6 @@ consumers_long <- consumers %>%
 
 updated_rows <- consumers_long %>%
   filter(Catches_Info != "Other" & !is.na(`Past_catches:_Other,_list_species`) & `Past_catches:_Other,_list_species` != "NA" )
-
-print(updated_rows)
 
 #write.csv(consumers_long, "consumers_long.csv", row.names = FALSE)
 # count_unique_rowID <- consumers_long %>%
@@ -464,7 +514,6 @@ consumers_long <- consumers_long %>%
 
 ##Check that advisory categories match
 anti_join_lakes <- anti_join(consumers_long, advisories_long, by=c("updated_lake_name" = "lake"))
-print(list(unique(anti_join_lakes$lake)))
 
 ##Create separate dataset for statewide framework
 
@@ -502,31 +551,49 @@ unmatched_rows <- unmatched_rows %>% filter(!is.na(Lakes) & Lakes != "NA")
 consumers_long <- consumers_long_adv
 consumers_long_adv <- NULL
 
-###CONTINUE QA here
+write.csv(consumers_long, "consumers_long.csv", row.names = FALSE)
 
+###Now consumers_long has lake specific matches
 ##Fill in statewide advisories for lakes/fish where there are no lake specific consumption data
-# Perform the left join only on the rows that meet the condition
-joined_data <- consumers_long %>%
-  filter(daily_intake > 0 & is.na(column)) %>%
+
+summary(as.factor(consumers_long$column))
+##636 obs, 565 NAs
+
+#step 1: filter data
+filtered_data <- consumers_long %>% 
+  filter(is.na(column))
+
+#step 2: Perform the left join 
+joined_data <- filtered_data %>%
   left_join(statewide_adv, by = c("Age_Category" = "Age", 
                                   "Observed_Gender" = "Gender",
-                                  "Catches_Info" = "join_fish_names"))%>%
+                                  "Catches_Info" = "join_fish_names")) %>%
   select(-lake)
-  
+
+summary(as.factor(joined_data$statewide_column))
+##565 obs, 137 NAs 
+
+##Check columns which are still NA
+join_check <- joined_data %>% filter (is.na(statewide_column))
+##Verified all Tilapia, or other w/ no daily intake
+
 # Keep the rows that do not meet the condition as they are
+##Should have 71 observations (636 obs from consumers long - 565 NA)
 non_joined_data <- consumers_long %>%
-  filter(!(daily_intake > 0 & is.na(column)))
+  filter(!(is.na(column)))
   
 # Combine the two data frames back together
+##Should have 636 obs again 
 consumers_long <- bind_rows(joined_data, non_joined_data) 
 
 consumers_long <- consumers_long %>% 
   mutate(column = coalesce(column, statewide_column,),
          threshold_g_day = coalesce(threshold_g_day, statewide_threshold_g_day),
-         OEHHA_fish_names = coalesce(OEHHA_fish_names, OEHHA_fish_names.y)
+         OEHHA_fish_names = coalesce(OEHHA_fish_names, OEHHA_fish_names.y),
+         threshold_used = if_else(is.na(threshold_used) & !is.na(column), "lake specific", threshold_used)
          )%>%
   select(-statewide_column, - statewide_threshold_g_day, -OEHHA_fish_names.x, - OEHHA_fish_names.y)%>%
-   group_by(Catches_Info, rowID) %>%
+  group_by(Catches_Info, rowID) %>%
   mutate(avg_threshold = mean(threshold_g_day))%>%
   ungroup() %>%
 ##Does consumption by each individual from one lake exceed threshold for that specific lake
@@ -537,10 +604,19 @@ consumers_long <- consumers_long %>%
 ##datacheck 
 datacheck <- consumers_long %>% select(rowID, Catches_Info, updated_lake_name, threshold_g_day, avg_threshold)
 
+##Subset to only rows with daily intake greater than zero
+summary((consumers_long$daily_intake))
+#451 NAs # 30 obs = 0 # final obs after filter should be 636-451-30 = 155
+
+consumers_long <- consumers_long %>% 
+  filter(daily_intake>0)
+
 
 ##During data clean up - check NAs here. Explore why.
 ##Need to check code to make sure things are filtering & calculating as expected
 write.csv(consumers_long, "consumers_long.csv", , row.names = FALSE)
+
+
 
 ```
 ##Parts of fish consumed

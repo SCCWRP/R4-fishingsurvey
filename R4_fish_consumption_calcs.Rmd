@@ -676,6 +676,9 @@ consumers_long <- consumers_long %>%
 ##Need to check code to make sure things are filtering & calculating as expected
 write.csv(consumers_long, "consumers_long.csv", , row.names = FALSE)
 
+##Create datset to use for parts of fish consumed analysis
+parts_consumed <- consumers_long
+
 ##Remove extra columns from consumers long dataframe
 consumers_long <- consumers_long %>%
   select(

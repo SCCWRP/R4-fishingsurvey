@@ -342,7 +342,6 @@ expanded_rows <- child_rows %>%
 
 # Append the new rows to the original dataframe, excluding the original "Child" rows
 advisories_long_updated <- advisories_long %>%
-  filter(Gender != "Child") %>%
   bind_rows(expanded_rows)
 
 # Check: Count original "Child" rows and verify new rows added
@@ -350,7 +349,7 @@ child_count <- nrow(child_rows)
 added_rows_count <- nrow(expanded_rows)
 print(paste("Number of original 'Child' rows replaced:", child_count))
 print(paste("Number of new rows added:", added_rows_count))
-print(paste("Expected added rows (2x original 'Child' rows):", child_count * 2))
+print(paste("Expected added rows (2x original 'Child' rows):", child_count * 3))
 
 # Verify the resulting Gender column
 print("Unique Gender values after update:")
@@ -1916,11 +1915,12 @@ household_consumers_long <- household_consumers %>%
 mutate(daily_intake = (daily_intake * 227)/28) %>%
   ###Associate Age
 mutate(hh_age = case_when(
-    household_member == "Person_1" ~ `Age_(Person_1)`,
-    household_member == "Person_2" ~ `Age_(Person_2)`,
-    household_member == "Person_3" ~ `Age_(Person_3)`,
-    household_member == "Person_4" ~ `Age_(Person_4)`,
+    household_member == "Person_1" ~ `Age_(Person_1)_numeric`,
+    household_member == "Person_2" ~ `Age_(Person_2)_numeric`,
+    household_member == "Person_3" ~ `Age_(Person_3)_numeric`,
+    household_member == "Person_4" ~ `Age_(Person_4)_numeric`,
   ))%>%
+  
   ###Associate gender
 mutate(hh_gender = case_when(
     household_member == "Person_1" ~ `Gender_(Person_1)`,
@@ -2052,7 +2052,7 @@ changed_rows <- hh_consumers_species_long %>%
   filter(changed) %>%
   select(hh_consumerID, hh_species_consumed,hh_times_eaten, number_fish_sp, hh_sp_consumed_times, changed)
 
-write.csv(hh_consumers_species_long, "hh_consumers_species_long.csv", row.names = FALSE)
+#write.csv(hh_consumers_species_long, "hh_consumers_species_long.csv", row.names = FALSE)
 ##datacheck
 check <- hh_consumers_species_long %>% filter(hh_consumerID ==45)
 
@@ -2128,29 +2128,36 @@ anti_join_lakes <- anti_join(df_hh_lake_names, unique_lake_names_key, by=c("hh_l
 
 
 ##Update lake names with join
-hh_consumers_species_long <- hh_consumers_species_long %>%
+hh_consumers_species_long_match <- hh_consumers_species_long %>%
   left_join(unique_lake_names_key %>%
               select(original_name, lake , county), by = c("hh_lakes" = "original_name")) %>%
   rename(updated_lake_name = lake) %>%
+  #check <- hh_consumers_species_long_match %>% select(hh_lakes, updated_lake_name, county)
   mutate(Age_Category =  case_when(
     hh_age < 18 ~ "< 18",
     hh_age >= 18 & hh_gender == "Male" ~ ">= 18",
     hh_age >= 18 & hh_age < 50 & hh_gender == "Female" ~ "18 - 49",
-    hh_age > 50 & hh_gender == "Female" ~ ">= 50",
+    hh_age >= 50 & hh_gender == "Female" ~ ">= 50",
     .default = NA
   ))%>%
-  mutate(hh_gender_original = case_when(
-    hh_gender =="Female" ~"Female",
-    hh_gender == "Male"~"Male"
-  ))%>%
-  mutate(hh_gender = case_when(
-    hh_age <18 ~ "Child",
-    hh_gender =="Female" ~"Female",
-    hh_gender == "Male"~"Male"
-  ))
+  #check <- hh_consumers_species_long_match %>% select(hh_age, Age_Category)
+
+mutate(hh_gender_original = case_when(
+  hh_gender =="Female" ~"Female",
+  hh_gender == "Male"~"Male"
+))%>%
+mutate(hh_gender = case_when(
+  hh_age <18 ~ "Child",
+  hh_gender =="Female" ~"Female",
+  hh_gender == "Male"~"Male"
+))%>%
+mutate(hh_species_consumed = case_when(
+  hh_species_consumed == "Largemouth bass" ~ "Black bass species",
+  TRUE ~ hh_species_consumed
+))
 
 ##Join consumers with advisories
-  hh_consumers_species_long <- hh_consumers_species_long   %>%
+  hh_consumers_species_long_adv <- hh_consumers_species_long_match   %>%
   left_join(advisories_long, by = c("updated_lake_name" = "lake", 
                                     "Age_Category" = "Age", 
                                     "hh_gender" = "Gender",
@@ -2158,27 +2165,36 @@ hh_consumers_species_long <- hh_consumers_species_long %>%
                                     )) %>%
    rename(county = county.x)%>%
    select(-county.y)
+
+#write.csv(hh_consumers_species_long_adv, "hh_consumers_species_long_adv.csv", row.names = FALSE)
   
 ##Fill in statewide advisories for lakes/fish where there are no lake specific consumption data
 # Perform the left join only on the rows that meet the condition
-hh_joined_data <- hh_consumers_species_long %>%
-  filter(hh_daily_intake_per_fish_per_lake > 0 & is.na(column)) %>%
+summary(as.factor(hh_consumers_species_long_adv$column)) ##124 NAs
+  
+hh_joined_data <- hh_consumers_species_long_adv %>% ##Should be 124 obs
+  filter(is.na(column)) %>%
   left_join(statewide_adv, by = c("Age_Category" = "Age", 
                                   "hh_gender" = "Gender",
                                   "hh_species_consumed" = "join_fish_names"))%>%
   select(-lake)
-  
+summary(as.factor(hh_joined_data$statewide_column)) ##Remaining 15 NAs unmatched due to missing Age and Gender information
+write.csv(hh_joined_data, "hh_joined_data.csv",row.names=FALSE)
+
 # Keep the rows that do not meet the condition as they are
-hh_non_joined_data <- hh_consumers_species_long %>%
-  filter(!(hh_daily_intake_per_fish_per_lake > 0 & is.na(column)))
+hh_non_joined_data <- hh_consumers_species_long_adv %>% #should be 51 obs
+  filter(!(is.na(column)))
+summary(as.factor(hh_non_joined_data$column))
   
 # Combine the two data frames back together
-hh_consumers_species_long <- bind_rows(hh_joined_data, hh_non_joined_data) 
+hh_consumers_species_long_adv <- bind_rows(hh_joined_data, hh_non_joined_data) 
+#write.csv(hh_consumers_species_long_adv, "hh_consumers_species_long_adv.csv", row.names = FALSE)
 
-hh_consumers_species_long <-hh_consumers_species_long %>% 
+hh_consumers_species_long_adv <-hh_consumers_species_long_adv %>% 
   mutate(column = coalesce(column, statewide_column,),
          threshold_g_day = coalesce(threshold_g_day, statewide_threshold_g_day),
-         OEHHA_fish_names = coalesce(OEHHA_fish_names, OEHHA_fish_names.y)
+         OEHHA_fish_names = coalesce(OEHHA_fish_names, OEHHA_fish_names.y),
+         threshold_used = if_else(is.na(threshold_used) & !is.na(column), "lake specific", threshold_used)
          )%>%
   select(-statewide_column, - statewide_threshold_g_day, -OEHHA_fish_names.x, - OEHHA_fish_names.y)%>%
   group_by(hh_species_consumed, hh_consumerID) %>%
@@ -2191,7 +2207,7 @@ hh_consumers_species_long <-hh_consumers_species_long %>%
   
 ##During data clean up - check NAs here. Explore why.
 ##Need to check code to make sure things are filtering & calculating as expected
-write.csv(hh_consumers_species_long, "hh_consumers_long.csv", , row.names = FALSE)
+write.csv(hh_consumers_species_long_adv, "hh_consumers_long.csv", , row.names = FALSE)
 
 ```
 
@@ -2236,7 +2252,7 @@ for (lake_name in names(lakes)) {
     selected_fish <- fish_species[[fish_name]]
     
   ### Percent of consumers exceeding thresholds by lake (Exceed lake specific threshold by consuming fish ONLY at that lake) OF if all LA county then calculating contribution of LA county lakes specifically 
-      per_exceed_thresh_all_hh <- hh_consumers_species_long %>%
+      per_exceed_thresh_all_hh <- hh_consumers_species_long_adv %>%
         group_by(hh_consumerID)%>%
         filter(hh_total_daily_intake > 0) %>%
         filter(hh_species_consumed %in% selected_fish) %>%
@@ -2254,7 +2270,7 @@ for (lake_name in names(lakes)) {
   
     ### Percent of consumers exceeding avg thresholds
     
-    per_exceed_avg_thresh_all_hh <- hh_consumers_species_long %>%
+    per_exceed_avg_thresh_all_hh <- hh_consumers_species_long_adv %>%
     group_by(hh_consumerID) %>%
     filter(hh_total_daily_intake > 0) %>%
     filter(hh_species_consumed %in% selected_fish) %>%
@@ -2270,7 +2286,7 @@ for (lake_name in names(lakes)) {
     select(lakes, age, fish, everything())
 
   ### All consumers consumption rate
-  all_consumption_rate <- hh_consumers_species_long%>%
+  all_consumption_rate <- hh_consumers_species_long_adv%>%
     group_by(hh_consumerID) %>%
     filter(hh_total_daily_intake > 0) %>%
     filter(hh_species_consumed %in% selected_fish) %>%
@@ -2319,7 +2335,7 @@ write.csv(hh_all_lakes_summary_table, "hh_consumption_summary_all.csv", row.name
 ```{r}
 
 ###START here subsetting for LA
-LA_county_hh_consumers <- hh_consumers_species_long %>%
+LA_county_hh_consumers <- hh_consumers_species_long_adv %>%
   filter(county == "Los Angeles")%>%
   group_by(hh_species_consumed, hh_consumerID) %>%
   mutate(daily_intake_LA = sum(hh_daily_intake_per_fish_per_lake))%>%
@@ -2464,11 +2480,11 @@ for (lake_name in names(lakes)) {
 }
 # Combine all summary tables into a single data frame
 hh_LA_lakes_summary_table <- bind_rows(summary_tables)
-hh_LA_lakes_summary_table <- hh_all_lakes_summary_table %>%
+hh_LA_lakes_summary_table <- hh_LA_lakes_summary_table %>%
   filter(complete.cases(median))
 
 # Write to CSV
-write.csv(hh_LA_lakes_summary_table, "hh_consumption_summary.csv", row.names = FALSE)
+write.csv(hh_LA_lakes_summary_table, "hh_LA_consumption_summary.csv", row.names = FALSE)
 
 
 
@@ -2502,11 +2518,13 @@ fisher_hist <-ggplot(fisherdb, aes(x = Age, fill = Observed_Gender)) +
 
 fisher_hist
 
-##histogram of age/gendre of fishers who consume fish
+##histogram of age/gender of fishers who consume fish
 fish_consumers <- consumers_long %>%
   group_by(rowID) %>%
   summarise(Age_numeric = first(Age_numeric), Observed_Gender = first(Observed_Gender)) %>%
   ungroup()
+
+fish_consumers$Observed_Gender <- factor (fish_consumers$Observed_Gender, levels = c("Female", "Male"))
 
 fisher_consumer_hist <- ggplot(fish_consumers, aes(x = Age_numeric, fill = Observed_Gender)) +
   geom_histogram(binwidth = 10, boundary = 0, color = "black") +
@@ -2516,23 +2534,25 @@ fisher_consumer_hist <- ggplot(fish_consumers, aes(x = Age_numeric, fill = Obser
     y = "Frequency",
     fill = "Gender"
   ) +
-  scale_fill_manual(values = c("gray","#ff8900","#15607a"))+
+  scale_fill_manual(values = c("#ff8900","#15607a"))+
   scale_y_continuous(limits=c(0,15))+
   scale_x_continuous(limits=c(0,100),breaks = seq(0,100, by = 10))+
   theme(panel.background =element_blank(),
         axis.line = element_line(color = "black"),
-        legend.position = "none",)
+        legend.position = "bottom",)
 
 fisher_consumer_hist
 
 ##histogram age/gender household (hh) members
 
-hh_age <- hh_consumers_species_long %>%
+hh_age <- hh_consumers_species_long_adv %>%
   mutate(across(c(hh_gender_original),as.factor))%>%
   filter(hh_daily_intake_per_fish>0)%>%
   group_by(fisherID, household_member,hh_age,hh_gender_original)%>%
   summarize(sum(hh_daily_intake_per_fish_per_lake))%>%
   ungroup()
+
+levels(hh_age$hh_gender_original)
 
 hh_hist <-ggplot(hh_age, aes(x = hh_age, fill = hh_gender_original)) +
   geom_histogram(binwidth = 10, boundary = 0, color = "black") +
@@ -2542,7 +2562,7 @@ hh_hist <-ggplot(hh_age, aes(x = hh_age, fill = hh_gender_original)) +
     y = "Frequency",
     fill = "Gender"
   ) +
-  scale_fill_manual(values = c("#ff8900","#15607a","gray"))+
+  scale_fill_manual(values = c("#ff8900","#15607a"))+
   scale_y_continuous(limits=c(0,15))+
   scale_x_continuous(limits=c(0,100),breaks = seq(0,100, by = 10) ) +
   theme(panel.background =element_blank(),
@@ -2571,7 +2591,76 @@ ggsave(
 )
 
 ```
+#WQ question
+```{r}
+##This analysis is of fishers who said they did not eat fish at the lakes surveyed due to water quality concerns. 
 
+colnames(fisherdb)
+summary(as.factor(fisherdb$`If_State_addressed_concerns,_would_you_eat_fish?`))
+
+wq_q <- fisherdb %>%
+  mutate(`If_State_addressed_concerns,_would_you_eat_fish?`= case_when(
+    `If_State_addressed_concerns,_would_you_eat_fish?`== "Na" ~ NA_character_,
+    `If_State_addressed_concerns,_would_you_eat_fish?`== "NA" ~ NA_character_,
+    TRUE ~ `If_State_addressed_concerns,_would_you_eat_fish?`
+  ))
+
+summary(as.factor(wq_q$`If_State_addressed_concerns,_would_you_eat_fish?`))
+
+## 77 fishers surveyed across 4 lakes
+##subset to fishers who answered question 
+##Expect 77 obs after filtering
+wq_q <- wq_q %>%
+  filter(
+    `If_State_addressed_concerns,_would_you_eat_fish?`== "Yes"|
+      `If_State_addressed_concerns,_would_you_eat_fish?`== "No"|
+      `If_State_addressed_concerns,_would_you_eat_fish?`== "Maybe"
+  )
+summary(as.factor((wq_q$Location)))
+
+# Filter data and calculate percentages for each location
+percent_table <- wq_q %>%
+  filter(
+    `If_State_addressed_concerns,_would_you_eat_fish?` %in% c("Yes", "No", "Maybe"),
+    Location %in% c("Alondra", "Legg", "Magic Johnson", "Peck Road")
+  ) %>%
+  group_by(Location, `If_State_addressed_concerns,_would_you_eat_fish?`) %>%
+  summarise(count = n(), .groups = "drop") %>%
+  group_by(Location) %>%
+  mutate(percent = round((count / sum(count)) * 100, 2)) %>%
+  ungroup()
+
+# Reshape the table to wide format for readability
+percent_table_wide <- percent_table %>%
+  pivot_wider(
+    names_from = `If_State_addressed_concerns,_would_you_eat_fish?`,
+    values_from = percent,
+    values_fill = 0
+  )
+
+location_summary <- wq_q %>%
+  filter(
+    `If_State_addressed_concerns,_would_you_eat_fish?` %in% c("Yes", "No", "Maybe"),
+    Location %in% c("Alondra", "Legg", "Magic Johnson", "Peck Road")
+  ) %>%
+  group_by(Location, `If_State_addressed_concerns,_would_you_eat_fish?`) %>%
+  summarise(count = n(), .groups = "drop") %>%
+  pivot_wider(
+    names_from = `If_State_addressed_concerns,_would_you_eat_fish?`,
+    values_from = count,
+    values_fill = 0
+  ) %>%
+  mutate(
+    total_count = Yes + No + Maybe  # Calculate total count for each location
+  )%>%
+  mutate(
+    percent_No = round((No/total_count*100),0),
+    percent_Yes = round((Yes/total_count*100),0),
+    percent_Maybe = round((Maybe/total_count*100),0),
+    check = percent_No+percent_Yes+percent_Maybe
+  )
+
+```
 
 #EXTRA CODE
 $$ ##remove dollar signs to open up code

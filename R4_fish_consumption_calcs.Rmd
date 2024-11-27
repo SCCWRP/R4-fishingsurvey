@@ -680,16 +680,16 @@ write.csv(consumers_long, "consumers_long.csv", , row.names = FALSE)
 parts_consumed <- consumers_long
 
 ##Remove extra columns from consumers long dataframe
-consumers_long <- consumers_long %>%
-  select(
-    "rowID","Age_numeric", "Observed_Gender","Catches_Info",
-    "Annual_Household_Income","Number_in_household", "Ethnicity",
-    "daily_intake","number_lakes","daily_intake_per_lake",
-    "updated_lake_name","county",
-    "Age_Category", "column","threshold_g_day","threshold_used",
-    "OEHHA_fish_names","avg_threshold","exceed_threshold_indiv_lake","exceed_threshold_avg_lake" 
+# consumers_long <- consumers_long %>%
+#   select(
+#     "rowID","Age_numeric", "Observed_Gender","Catches_Info",
+#     "Annual_Household_Income","Number_in_household", "Ethnicity",
+#     "daily_intake","number_lakes","daily_intake_per_lake",
+#     "updated_lake_name","county",
+#     "Age_Category", "column","threshold_g_day","threshold_used",
+#     "OEHHA_fish_names","avg_threshold","exceed_threshold_indiv_lake","exceed_threshold_avg_lake" 
     
-  )
+
 
 ```
 ##Parts of fish consumed
@@ -831,71 +831,63 @@ print(lake_results_df)
 ##Fish consumption by income
 
 ```{r}
+##COME BACK TO QA
 ###address missing points & then rerun 
-consumers_x_income <- consumers_long %>%
-   separate(Annual_Household_Income, into = c("low_end_income", "high_end_income"), sep = "-", fill = "right", remove=FALSE) %>%
- filter(!low_end_income %in% c("No answer","Unknown")) %>%
-  filter(!high_end_income %in% c("No answer","Unknown"))%>%
-  mutate(
-    low_end_income = str_replace_all(low_end_income, ",", ""),
-    low_end_income = case_when(
-    low_end_income == "200000+" ~ "200000",
-    TRUE ~ low_end_income),
-    low_end_income = as.numeric(low_end_income)) %>%
-mutate(
-    high_end_income = str_replace_all(high_end_income, ",", ""),
-    high_end_income = case_when(
-    Annual_Household_Income=="200,000+" ~ "200000",
-    TRUE ~ high_end_income),
-    high_end_income = as.numeric(high_end_income)) %>%
-mutate(Number_in_household = as.numeric(Number_in_household))%>%
-mutate(avg_income = (high_end_income + low_end_income) / 2)%>%
-mutate(avg_income_norm = avg_income/Number_in_household) %>%
-  group_by(rowID)%>%
-  mutate(total_daily_intake = sum(daily_intake))%>%
-  ungroup()%>%
-filter(avg_income_norm < 100000)
-  
-ggplot(consumers_x_income, aes(x=avg_income_norm, y=total_daily_intake, color = exceed_threshold_avg_lake))+
-  geom_point()+ 
-  #geom_smooth(method= "lm", color="red")+
-  #stat_regline_equation()
-  theme(panel.grid = element_blank())+
- facet_wrap(~ exceed_threshold_avg_lake)
 
+##This chunk of code is for regression analysis (finding middle of income range). If we don't use this, remove
+
+# consumers_x_income <- consumers_long %>%
+#    separate(Annual_Household_Income, into = c("low_end_income", "high_end_income"), sep = "-", fill = "right", remove=FALSE) %>%
+#  filter(!low_end_income %in% c("No answer","Unknown")) %>%
+#   filter(!high_end_income %in% c("No answer","Unknown"))%>%
+#   mutate(
+#     low_end_income = str_replace_all(low_end_income, ",", ""),
+#     low_end_income = case_when(
+#     low_end_income == "200000+" ~ "200000",
+#     TRUE ~ low_end_income),
+#     low_end_income = as.numeric(low_end_income)) %>%
+# mutate(
+#     high_end_income = str_replace_all(high_end_income, ",", ""),
+#     high_end_income = case_when(
+#     Annual_Household_Income=="200,000+" ~ "200000",
+#     TRUE ~ high_end_income),
+#     high_end_income = as.numeric(high_end_income)) %>%
+# mutate(Number_in_household = as.numeric(Number_in_household))%>%
+# mutate(avg_income = (high_end_income + low_end_income) / 2)%>%
+# mutate(avg_income_norm = avg_income/Number_in_household) %>%
+#   group_by(rowID)%>%
+#   mutate(total_daily_intake = sum(daily_intake))%>%
+#   ungroup()%>%
+# filter(avg_income_norm < 100000)
+#   
+# ggplot(consumers_x_income, aes(x=avg_income_norm, y=total_daily_intake, color = exceed_threshold_avg_lake))+
+#   geom_point()+ 
+#   #geom_smooth(method= "lm", color="red")+
+#   #stat_regline_equation()
+#   theme(panel.grid = element_blank())+
+#  facet_wrap(~ exceed_threshold_avg_lake)
+d
 ### leaving income ranges as is:
-
-fisherdb_consumers <- fisherdb %>% mutate(consumer =(
-                  `Past_catches:_Rainbow_Trout,_times_eaten` >0 |
-                  `Past_catches:_Catfish,_times_eaten`>0 |
-                  `Past_catches:_Bluegill,_times_eaten`>0|
-                  `Past_catches:_Common_Carp,_times_eaten`>0 |
-                  `Past_catches:_Bass,_times_eaten`>0 |
-                  `Past_catches:_Crappie,_times_eaten`>0 |
-                  `Past_catches:_Tilapia,_times_eaten`>0|
-                  `Past_catches:_other,_times_eaten`>0
-                  ))%>%
-  mutate(Annual_Household_Income = as.factor(Annual_Household_Income))%>%
-  mutate(Annual_Household_Income = case_when(
-    Annual_Household_Income == "75.000-100.000" ~ "75,000-100,000",
-    Annual_Household_Income == "50,000-75,0000" ~ "50,000-75,000",
-    Annual_Household_Income == "150.000-200,000" ~ "150,000-200,000",
-    Annual_Household_Income == "150,000-200,001" ~ "150,000-200,000",
+summary(as.factor(consumers_long$Annual_Household_Income))
+consumer_x_income <- consumers_long %>%
+  mutate(
+    Annual_Household_Income = case_when(
+    Annual_Household_Income == "Doesn't know" ~ "Not reported / unknown",
     Annual_Household_Income == "No answer" ~ "Not reported / unknown",
-    Annual_Household_Income == "No Answer" ~ "Not reported / unknown",
-    Annual_Household_Income == "Unknown" ~ "Not reported / unknown",
-    Annual_Household_Income == "Other/Unknown" ~ "Not reported / unknown",
     Annual_Household_Income == "Prefer not to say" ~ "Not reported / unknown",
-    Annual_Household_Income == "NA" ~ "Not reported / unknown",
     TRUE ~ Annual_Household_Income  # Keep all other values as they are
-  ))
-summary(as.factor(fisherdb_consumers$Annual_Household_Income))  
+  )
+  )%>%
+  mutate(Annual_Household_Income = as.factor(Annual_Household_Income))
 
-income_counts <- fisherdb_consumers %>%
-  group_by(Annual_Household_Income) %>%
+
+###NEEDS fixing - currently counting multipul per person becuase in logn format
+income_counts <- consumer_x_income %>%
+  group_by( Annual_Household_Income) %>%
   summarise(fisher_count = n()) %>%
-  ungroup()#%>%
-  
+  ungroup()
+
+
 
 consumer_income_counts <- fisherdb_consumers %>%
   filter(consumer ==TRUE)%>%
@@ -977,68 +969,68 @@ income_counts_export <- income_counts %>%
 
 write.csv(income_counts_export, file="income_counts.csv", row.names = FALSE)
 
-#Plot consumption rate by income
-
-dailyintake_x_income <- dailyintake_x_income %>%
-  mutate(Annual_Household_Income = factor(Annual_Household_Income, levels = c("0-20,000",
-                                                  "20,000-50,000", 
-                                                  "50,000-75,000", 
-                                                  "75,000-100,000", 
-                                                  "100,000-150,000",
-                                                  "150,000-200,000",
-                                                  "200,000+",
-                                                  "Not reported / unknown")))
-
-plot_dailyintake_income <- ggplot(dailyintake_x_income, aes(x=Annual_Household_Income, y = (total_daily_intake), fill = Annual_Household_Income ))+
-   geom_violin(width=2.1, size=0.2) +
-    scale_fill_viridis(discrete=TRUE) +
-    scale_color_viridis(discrete=TRUE) +
-    scale_y_break(c(500, 2100))+
-    theme_ipsum() +
-    theme(
-      legend.position="none"
-    )
-
-plot_dailyintake_income
-
-
-##Plot (overlaying bars)
-
-# income_counts <- income_counts %>% 
-#    mutate(Annual_Household_Income = factor(Annual_Household_Income, levels = c("0-20,000",
+# #Plot consumption rate by income
+# 
+# dailyintake_x_income <- dailyintake_x_income %>%
+#   mutate(Annual_Household_Income = factor(Annual_Household_Income, levels = c("0-20,000",
 #                                                   "20,000-50,000", 
 #                                                   "50,000-75,000", 
 #                                                   "75,000-100,000", 
 #                                                   "100,000-150,000",
 #                                                   "150,000-200,000",
-#                                                   "200,000+")))
-perc_all_income<-ggplot(income_counts, aes(x = Annual_Household_Income)) +
-  #geom_bar(aes(y = percent_total , fill= "All Fishers"), stat = "identity") +  # Plot total counts
-  geom_bar(aes(y = percent_consumers, fill = "Consumers"), stat = "identity") + # Overlay consumer counts
-  geom_bar(aes(y = percent_exceed_offishers, fill = "Exceed Advisory"), stat = "identity") +  # Overlay consumer count
-  scale_fill_manual(values = c("All Fishers" = "gray", "Consumers" = "#2786A0","Exceed Advisory" = "#D07C42" )) +  # Customize fill colors
-  labs(y = "Percent of fishers", x="Annual household income", title = "") +  # Customize labels
-  theme_minimal() +
-  theme(legend.position = "top",
-        panel.grid.major = element_blank(), 
-        panel.grid.minor = element_blank(),
-        axis.text.x = element_text(angle = 90, hjust = 0.5)) # Clean theme
-
-perc_all_income
-
-plot_height <- 1500
-plot_width <- 1200
-
-ggsave(
-  filename = "consumption_x_income.svg",
-  plot = perc_all_income, width = plot_width, height = plot_height, units = "px", dpi = 300
-)
+#                                                   "200,000+",
+#                                                   "Not reported / unknown")))
+# 
+# plot_dailyintake_income <- ggplot(dailyintake_x_income, aes(x=Annual_Household_Income, y = (total_daily_intake), fill = Annual_Household_Income ))+
+#    geom_violin(width=2.1, size=0.2) +
+#     scale_fill_viridis(discrete=TRUE) +
+#     scale_color_viridis(discrete=TRUE) +
+#     scale_y_break(c(500, 2100))+
+#     theme_ipsum() +
+#     theme(
+#       legend.position="none"
+#     )
+# 
+# plot_dailyintake_income
+# 
+# 
+# ##Plot (overlaying bars)
+# 
+# # income_counts <- income_counts %>% 
+# #    mutate(Annual_Household_Income = factor(Annual_Household_Income, levels = c("0-20,000",
+# #                                                   "20,000-50,000", 
+# #                                                   "50,000-75,000", 
+# #                                                   "75,000-100,000", 
+# #                                                   "100,000-150,000",
+# #                                                   "150,000-200,000",
+# #                                                   "200,000+")))
+# perc_all_income<-ggplot(income_counts, aes(x = Annual_Household_Income)) +
+#   #geom_bar(aes(y = percent_total , fill= "All Fishers"), stat = "identity") +  # Plot total counts
+#   geom_bar(aes(y = percent_consumers, fill = "Consumers"), stat = "identity") + # Overlay consumer counts
+#   geom_bar(aes(y = percent_exceed_offishers, fill = "Exceed Advisory"), stat = "identity") +  # Overlay consumer count
+#   scale_fill_manual(values = c("All Fishers" = "gray", "Consumers" = "#2786A0","Exceed Advisory" = "#D07C42" )) +  # Customize fill colors
+#   labs(y = "Percent of fishers", x="Annual household income", title = "") +  # Customize labels
+#   theme_minimal() +
+#   theme(legend.position = "top",
+#         panel.grid.major = element_blank(), 
+#         panel.grid.minor = element_blank(),
+#         axis.text.x = element_text(angle = 90, hjust = 0.5)) # Clean theme
+# 
+# perc_all_income
+# 
+# plot_height <- 1500
+# plot_width <- 1200
+# 
+# ggsave(
+#   filename = "consumption_x_income.svg",
+#   plot = perc_all_income, width = plot_width, height = plot_height, units = "px", dpi = 300
+# )
 
 ```
 
 ##Fish consumption by ethnicity
 ```{r}
-
+###Come back to QA
 fisherdb_ethnicity <- fisherdb_consumers %>% 
   mutate(Ethnicity = as.factor(Ethnicity))%>%
   mutate(Ethnicity = case_when(
@@ -1148,7 +1140,7 @@ write.csv(ethnicity_counts_export, file="ethnicity_counts.csv", row.names = FALS
 ##LOOP ALL lakes consumption
 
 ```{r}
-
+##Not QA'd may be able to remove
 # List of fish species to analyze
 fish_species <- list(
   "All" = c("Rainbow trout", "Catfish", "Sunfish species", "Common carp", "Black bass species", "Crappie"),
@@ -1259,10 +1251,10 @@ write.csv(all_lakes_summary_table, "consumption_summary_all.csv", row.names = FA
 
 ```
 
-
-
 ##LOOP surveyed lakes consumption 
 ```{r}
+
+###QA this code
 
 ####This loop provides a .csv output with the number of people consuming fish from each of the surveyed lakes and a summary of their consumption of different fish species from each individual lake alone (Not including fish they may be consuming at other lakes). percent_exceed_lake provides the percent of consumers whose fish consumption at the specified lake ALONE exceeds the OEHHA lake specific or statewide consumption threshold. percent_exceed_avg provides the percent of consumers whose fish consumption both from the specified lake and other lakes exceeds the average threshold for the lakes they consume from. Therefore, if percent_exceed_lake and percent_exceed_avg are the same then threshold exceedance is driven by the specified lake. If percent_exceed_avg is greater than percent_exceed_lake then there are other lakes contributing to threshold exceedance
 
@@ -1375,7 +1367,19 @@ all_lakes_summary_table <- bind_rows(summary_tables)
 # Write to CSV
 write.csv(all_lakes_summary_table, "consumption_summary_surveyed_lakes.csv", row.names = FALSE)
 
+#####Check data
+alondra_check <- consumers_long %>%
+  filter(updated_lake_name == "Alondra park")#%>%
 
+legg_check <- consumers_long %>%
+  filter(updated_lake_name == "Legg lake")#%>%
+
+mj_check <- consumers_long %>%
+  filter(updated_lake_name == "mj lake")#%>%
+
+write.csv(alondra_check, "alondra_check.csv", row.names = FALSE)
+write.csv(legg_check, "legg_check.csv", row.names = FALSE)
+write.csv(mj_check, "mj_check.csv", row.names = FALSE)
 
 ```
 
@@ -2396,10 +2400,10 @@ fisher_hist
 ##histogram of age/gendre of fishers who consume fish
 fish_consumers <- consumers_long %>%
   group_by(rowID) %>%
-  summarise(Age = first(Age), Observed_Gender = first(Observed_Gender)) %>%
+  summarise(Age_numeric = first(Age_numeric), Observed_Gender = first(Observed_Gender)) %>%
   ungroup()
 
-fisher_consumer_hist <- ggplot(fish_consumers, aes(x = Age, fill = Observed_Gender)) +
+fisher_consumer_hist <- ggplot(fish_consumers, aes(x = Age_numeric, fill = Observed_Gender)) +
   geom_histogram(binwidth = 10, boundary = 0, color = "black") +
   labs(
     title = "",

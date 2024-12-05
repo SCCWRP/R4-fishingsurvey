@@ -2493,17 +2493,17 @@ write.csv(hh_LA_lakes_summary_table, "hh_LA_consumption_summary.csv", row.names 
 ##Age histogram
 
 ```{r }
-fisherdb <- fisherdb %>%
-  mutate(Age= as.numeric(Age))
-summary(fisherdb$Age)
 
-fisherdb <- fisherdb %>%
-  mutate(`Observed_Gender` = case_when(
-   # `Observed_Gender` %in% c("unknown") ~ "Male",
-    TRUE ~ `Observed_Gender`
-  ))
+summary(fisherdb$Age_numeric)
+summary(as.factor(fisherdb$Observed_Gender))
 
-fisher_hist <-ggplot(fisherdb, aes(x = Age, fill = Observed_Gender)) +
+# fisherdb <- fisherdb %>%
+#   mutate(`Observed_Gender` = case_when(
+#    # `Observed_Gender` %in% c("unknown") ~ "Male",
+#     TRUE ~ `Observed_Gender`
+#   ))
+
+fisher_hist <-ggplot(fisherdb, aes(x = Age_numeric, fill = Observed_Gender)) +
   geom_histogram(binwidth = 10, color = "#000000") +
   labs(
     title = "",
@@ -2524,7 +2524,7 @@ fish_consumers <- consumers_long %>%
   summarise(Age_numeric = first(Age_numeric), Observed_Gender = first(Observed_Gender)) %>%
   ungroup()
 
-fish_consumers$Observed_Gender <- factor (fish_consumers$Observed_Gender, levels = c("Female", "Male"))
+#fish_consumers$Observed_Gender <- factor (fish_consumers$Observed_Gender, levels = c("Female", "Male"))
 
 fisher_consumer_hist <- ggplot(fish_consumers, aes(x = Age_numeric, fill = Observed_Gender)) +
   geom_histogram(binwidth = 10, boundary = 0, color = "black") +
@@ -2535,7 +2535,7 @@ fisher_consumer_hist <- ggplot(fish_consumers, aes(x = Age_numeric, fill = Obser
     fill = "Gender"
   ) +
   scale_fill_manual(values = c("#ff8900","#15607a"))+
-  scale_y_continuous(limits=c(0,15))+
+  scale_y_continuous(limits=c(0,20))+
   scale_x_continuous(limits=c(0,100),breaks = seq(0,100, by = 10))+
   theme(panel.background =element_blank(),
         axis.line = element_line(color = "black"),
@@ -2547,7 +2547,6 @@ fisher_consumer_hist
 
 hh_age <- hh_consumers_species_long_adv %>%
   mutate(across(c(hh_gender_original),as.factor))%>%
-  filter(hh_daily_intake_per_fish>0)%>%
   group_by(fisherID, household_member,hh_age,hh_gender_original)%>%
   summarize(sum(hh_daily_intake_per_fish_per_lake))%>%
   ungroup()
@@ -2563,7 +2562,7 @@ hh_hist <-ggplot(hh_age, aes(x = hh_age, fill = hh_gender_original)) +
     fill = "Gender"
   ) +
   scale_fill_manual(values = c("#ff8900","#15607a"))+
-  scale_y_continuous(limits=c(0,15))+
+  scale_y_continuous(limits=c(0,20))+
   scale_x_continuous(limits=c(0,100),breaks = seq(0,100, by = 10) ) +
   theme(panel.background =element_blank(),
         axis.line = element_line(color = "black"),

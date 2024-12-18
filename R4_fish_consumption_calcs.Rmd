@@ -151,53 +151,222 @@ summary(fisherdb$`Gender_(Person_4)`)
 
 
 ```
-#database check
+#database check - can prob delete
 ```{r}
 
+##Checking born in US question
+
+US_q <- fisherdb %>% filter(
+  (Born_in_US == "NA" | is.na(Born_in_US))
+)
+
+US_q <- US_q %>% filter(
+  `Past_catches:_Rainbow_Trout,_times_eaten_numeric` > 0 |
+    `Past_catches:_Catfish,_times_eaten_numeric` > 0 |
+    `Past_catches:_Bluegill,_times_eaten_numeric` > 0 |
+    `Past_catches:_Common_Carp,_times_eaten_numeric` > 0 |
+    `Past_catches:_Bass,_times_eaten_numeric` > 0 |
+    `Past_catches:_Crappie,_times_eaten_numeric` > 0 |
+    `Past_catches:_Tilapia,_times_eaten_numeric` > 0 |
+    `Past_catches:_other,_times_eaten_numeric` > 0
+)
+
+
+##Fishing here
+
+fishing_here <- fisherdb %>% select(
+  "Fishing_here:_Years",
+  "Fishing_here:_Months",
+  "Fishing_here:_Days"
+)
+
+invalid_rows <- fishing_here %>%
+  filter(
+    rowSums(. != 0) != 1  # Count non-zero values in each row, filter rows not equal to 1
+  )
+
+##unique values household members
+###relation to fisher
+
+relationship <- fisherdb %>% select(
+  "Relation_to_fisher_(Person_1)",
+  "Relation_to_fisher_(Person_2)",
+  "Relation_to_fisher_(Person_3)",
+  "Relation_to_fisher_(Person_4)"
+)%>%
+  mutate(across(everything(), as.factor)) %>%
+  pivot_longer(cols=everything(), names_to = "person", values_to = "relationship")%>%
+  distinct(relationship)
+
+relationship_counts <- relationship %>%
+  separate_rows(relationship, sep = ",\\s*") %>%  # Split on commas followed by optional spaces
+  distinct(relationship)
+
+#### unique values plans
+
+fish_plans <- fisherdb %>% select(
+  "Past_catches:_Rainbow_Trout,_plans",
+  "Past_catches:_Common_Carp,_plans",
+  "Past_catches:_Bluegill,_plans",
+  "Past_catches:_Catfish,_plans",
+  "Past_catches:_Crappie,_plans",
+  "Past_catches:_Bass,_plans",
+  "Past_catches:_Tilapia,_plans",
+  "Past_catches:_other,_plans"
+)%>%
+    mutate(across(everything(), as.factor)) %>%
+
+  pivot_longer(cols = everything(), names_to = "Fish_Type", values_to = "Reason")# %>%
+ #filter(!is.na(Reason)) %>%  # Remove NA values if necessary
+  #distinct(Reason)  # Get unique reasons
+plans_counts <- fish_plans %>%
+  separate_rows(Reason, sep = ",\\s*") %>%  # Split on commas followed by optional spaces
+  count(Reason, name = "Count") %>%
+  arrange(desc(Count))
+
+#### unique values why
+
+fish_why <- fisherdb %>% select(
+  "Past_catches:_Rainbow_Trout,_if_not_eating_why",
+  "Past_catches:_Common_Carp,_if_not_eating_why",
+  "Past_catches:_Bluegill,_if_not_eating_why",
+  "Past_catches:_Catfish,_if_not_eating_why",
+  "Past_catches:_Crappie,_if_not_eating_why",
+  "Past_catches:_Bass,if_not_eating_why",
+  "Past_catches:_Tilapia,_if_not_eating_why",
+  "Past_catches:_other,_if_not_eating_why"
+)%>%
+    mutate(across(everything(), as.factor)) %>%
+
+  pivot_longer(cols = everything(), names_to = "Fish_Type", values_to = "Reason")# %>%
+ #filter(!is.na(Reason)) %>%  # Remove NA values if necessary
+  #distinct(Reason)  # Get unique reasons
+why_counts <- fish_why%>%
+  separate_rows(Reason, sep = ",\\s*") %>%  # Split on commas followed by optional spaces
+  count(Reason, name = "Count") %>%
+  arrange(desc(Count))
+
+
+##unique values if not eating why
+
+not_eating_reason <- fisherdb %>% select(
+   "Past_catches:_Rainbow_Trout,_if_not_eating_why",
+  "Past_catches:_Catfish,_if_not_eating_why",
+   "Past_catches:_Bluegill,_if_not_eating_why",
+  "Past_catches:_Common_Carp,_if_not_eating_why",
+  "Past_catches:_Bass,if_not_eating_why" ,  
+ "Past_catches:_Crappie,_if_not_eating_why" ,
+  "Past_catches:_Tilapia,_if_not_eating_why" ,
+  "Past_catches:_other,_if_not_eating_why"
+)%>%
+  mutate(across(everything(), as.factor)) %>%
+
+  pivot_longer(cols = everything(), names_to = "Fish_Type", values_to = "Reason")# %>%
+ #filter(!is.na(Reason)) %>%  # Remove NA values if necessary
+ # distinct(Reason)  # Get unique reasons
+
+summary<-summary(not_eating_reason)
+reason_summary_df <- as.data.frame(summary)
+
+reason_counts <- not_eating_reason %>%
+  separate_rows(Reason, sep = ",\\s*") %>%  # Split on commas followed by optional spaces
+  count(Reason, name = "Count") %>%
+  arrange(desc(Count))
+
+noInt_import <-read_excel(path, sheet = "NoInterview")
+
+summary(as.factor(noInt_import$`Plans for the fish?`
+                  ))
+
+not_eating_reason <- fisherdb %>% select(
+  "Past_catches:_Rainbow_Trout,_Where", "Past_catches:_Rainbow_Trout,_if_not_eating_why",
+  "Past_catches:_Catfish,_where",  "Past_catches:_Catfish,_if_not_eating_why",
+  "Past_catches:_Bluegill,_where",  "Past_catches:_Bluegill,_if_not_eating_why",
+  "Past_catches:_Common_Carp,_where","Past_catches:_Common_Carp,_if_not_eating_why",
+  "Past_catches:__Bass,_where" ,"Past_catches:_Bass,if_not_eating_why" ,  
+  "Past_catches:_Crappie,_where","Past_catches:_Crappie,_if_not_eating_why" ,
+   "Past_catches:_Tilapia,_where" ,"Past_catches:_Tilapia,_if_not_eating_why" ,
+   "Past_catches:_other,_where","Past_catches:_other,_if_not_eating_why"
+)%>%
+  mutate(across(everything(), as.factor)) 
+
+summary(not_eating_reason)
+
+not_eating_reason_alondra <- not_eating_reason %>%
+  filter(
+    if_any(everything(), ~ str_detect(., regex("Alondra", ignore_case = TRUE)))
+  )%>%
+  filter(
+    if_any(everything(), ~ str_detect(., regex("preference", ignore_case = TRUE)))
+  )
+
+
+Check0 <- fisherdb %>% select(
+  "Times_eaten_caught_fish:_Urban_lakes",
+  "Past_catches:_Rainbow_Trout,_times_eaten",
+  "Past_catches:_Catfish,_times_eaten",
+  "Past_catches:_Bluegill,_times_eaten",
+  "Past_catches:_Common_Carp,_times_eaten",
+  "Past_catches:_Bass,_times_eaten",
+  "Past_catches:_Crappie,_times_eaten",
+  "Past_catches:_Tilapia,_times_eaten",
+  "Past_catches:_other,_times_eaten"
+)
+
+
+
 check1 <- fisherdb %>% select(
-  "Caught_Rainbow_Trout,_times_eaten","Past_catches:_Rainbow_Trout,_times_eaten",          
+  "Caught_Rainbow_Trout,_times_eaten","Past_catches:_Rainbow_Trout,_times_eaten",  
+  "Caught_Rainbow_Trout,_last_time_eaten","Past_catches:_Rainbow_Trout,_last_time_eaten",
 "Caught_Rainbow_Trout,_amount_eaten","Past_catches:_Rainbow_Trout,_amount_eaten",                     
  "Caught_Rainbow_Trout,_parts_eaten", "Past_catches:_Rainbow_Trout,_parts_eaten",
 "Caught_Rainbow_Trout,_cooking_method" ,"Past_catches:_Rainbow_Trout,_cooking_method" )
 
 check2 <- fisherdb %>% select(
-  "Caught_Catfish,_times_eaten","Past_catches:_Catfish,_times_eaten",          
+  "Caught_Catfish,_times_eaten","Past_catches:_Catfish,_times_eaten",
+  "Caught_Catfish,_last_time_eaten","Past_catches:_Catfish,_last_time_eaten",
 "Caught_Catfish,_amount_eaten","Past_catches:_Catfish,_amount_eaten",                     
  "Caught_Catfish,_parts_eaten", "Past_catches:_Catfish,_parts_eaten",
 "Caught_Catfish,_cooking_method" ,"Past_catches:_Catfish,_cooking_method" )
 
 check3 <-fisherdb %>% select(
   "Caught_Bluegill,_times_eaten","Past_catches:_Bluegill,_times_eaten",
+  "Caught_Bluegill',_last_time_eaten","Past_catches:_Bluegill,_last_time_eaten",
   "Caught_Bluegill,_amount_eaten","Past_catches:_Blue_gill,_amount_eaten",                     
  "Caught_Bluegill,_parts_eaten", "Past_catches:_Bluegill,_parts_eaten",
 "Caught_Bluegill,_cooking_method" ,"Past_catches:_Bluegill,_cooking_method"
 )
 check4 <-fisherdb %>% select(
    "Caught_Common_Carp,_times_eaten","Past_catches:_Common_Carp,_times_eaten",
+   "Caught_Common_Carp,_last_time_eaten","Past_catches:_Common_Carp,_last_time_eaten",
   "Caught_Common_Carp,_amount_eaten","Past_catches:_Common_Carp,_amount_eaten",                     
  "Caught_Common_Carp,_parts_eaten", "Past_catches:_Common_Carp,_parts_eaten",
 "Caught_Common_Carp,_cooking_method" ,"Past_catches:_Common_Carp,_cooking_method"
 )
 check5 <-fisherdb %>% select(
    "Caught_Bass,_times_eaten","Past_catches:_Bass,_times_eaten",
+   "Caught_Bass,_last_time_eaten","Past_catches:_Bass,_last_time_eaten",
   "Caught_Bass,_amount_eaten","Past_catches:_Bass,_amount_eaten",                     
  "Caught_Bass,_parts_eaten", "Past_catches:_Bass,_parts_eaten",
 "Caught_Bass,_cooking_method" ,"Past_catches:_Bass,_cooking_method"
 )
 check6 <-fisherdb %>% select(
    "Caught_Crappie,_times_eaten","Past_catches:_Crappie,_times_eaten",
+   "Caught_Crappie,_last_time_eaten","Past_catches:_Crappie,_last_time_eaten",
   "Caught_Crappie,_amount_eaten","Past_catches:_Crappie,_amount_eaten",                     
  "Caught_Crappie,_parts_eaten", "Past_catches:_Crappie,_parts_eaten",
 "Caught_Crappie,_cooking_method" ,"Past_catches:_Crappie,_cooking_method"
 )
 check7 <-fisherdb %>% select(
    "Caught_Tilapia,_times_eaten","Past_catches:_Tilapia,_times_eaten",
+   "Caught_Tilapia,_last_time_eaten","Past_catches:_Tilapia,_last_time_eaten",
   "Caught_Tilapia,_amount_eaten","Past_catches:_Tilapia,_amount_eaten",                     
  "Caught_Tilapia,_parts_eaten", "Past_catches:_Tilapia,_parts_eaten",
 "Caught_Tilapia,_cooking_method" ,"Past_catches:_Tilapia,_cooking_method"
 )
 check8 <-fisherdb %>% select(
    "Caught_Other,_times_eaten","Past_catches:_other,_times_eaten",
+   "Caught_Other,_last_time_eaten","Past_catches:_other,_last_time_eaten",
   "Caught_Other,_amount_eaten","Past_catches:_other,_amount_eaten",                     
  "Caught_Other,_parts_eaten", "Past_catches:_other,_parts_eaten",
 "Caught_other,_cooking_method" ,"Past_catches:_other,_cooking_method"

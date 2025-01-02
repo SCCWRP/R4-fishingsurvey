@@ -13,7 +13,7 @@ output:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-##test
+
 ```
 
 ## Install libraries
@@ -59,19 +59,19 @@ columns_to_convert <- c(
   "Past_catches:_Tilapia,_times_eaten_numeric",
   "Past_catches:_other,_times_eaten_numeric",
   
-  "Past_catches:_Rainbow_Trout,_amount_eaten_numeric",
-  "Past_catches:_Catfish,_amount_eaten_numeric",
-  "Past_catches:_Blue_gill,_amount_eaten_numeric",
-  "Past_catches:_Common_Carp,_amount_eaten_numeric",
-  "Past_catches:_Bass,_amount_eaten_numeric",
-  "Past_catches:_Crappie,_amount_eaten_numeric",
-  "Past_catches:_Tilapia,_amount_eaten_numeric",
-  "Past_catches:_other,_amount_eaten_numeric",
+  "Past_catches:_Rainbow_Trout,_servings_eaten_numeric",
+  "Past_catches:_Catfish,_servings_eaten_numeric",
+  "Past_catches:_Blue_gill,_servings_eaten_numeric",
+  "Past_catches:_Common_Carp,_servings_eaten_numeric",
+  "Past_catches:_Bass,_servings_eaten_numeric",
+  "Past_catches:_Crappie,_servings_eaten_numeric",
+  "Past_catches:_Tilapia,_servings_eaten_numeric",
+  "Past_catches:_other,_servings_eaten_numeric",
   
-  "Amount_eaten_(Person_1)_numeric",
-  "Amount_eaten_(Person_2)_numeric",
-  "Amount_eaten_(Person_3)_numeric",
-  "Amount_eaten_(Person_4)_numeric",
+  "Servings_eaten_(Person_1)_numeric",
+  "Servings_eaten_(Person_2)_numeric",
+  "Servings_eaten_(Person_3)_numeric",
+  "Servings_eaten_(Person_4)_numeric",
   
   "Times_eaten_last_4_weeks__(Person_1)_numeric",
   "Times_eaten_last_4_weeks__(Person_2)_numeric",
@@ -318,56 +318,56 @@ Check0 <- fisherdb %>% select(
 check1 <- fisherdb %>% select(
   "Caught_Rainbow_Trout,_times_eaten","Past_catches:_Rainbow_Trout,_times_eaten",  
   "Caught_Rainbow_Trout,_last_time_eaten","Past_catches:_Rainbow_Trout,_last_time_eaten",
-"Caught_Rainbow_Trout,_amount_eaten","Past_catches:_Rainbow_Trout,_amount_eaten",                     
+"Caught_Rainbow_Trout,_servings_eaten","Past_catches:_Rainbow_Trout,_servings_eaten",                     
  "Caught_Rainbow_Trout,_parts_eaten", "Past_catches:_Rainbow_Trout,_parts_eaten",
 "Caught_Rainbow_Trout,_cooking_method" ,"Past_catches:_Rainbow_Trout,_cooking_method" )
 
 check2 <- fisherdb %>% select(
   "Caught_Catfish,_times_eaten","Past_catches:_Catfish,_times_eaten",
   "Caught_Catfish,_last_time_eaten","Past_catches:_Catfish,_last_time_eaten",
-"Caught_Catfish,_amount_eaten","Past_catches:_Catfish,_amount_eaten",                     
+"Caught_Catfish,_servings_eaten","Past_catches:_Catfish,_servings_eaten",                     
  "Caught_Catfish,_parts_eaten", "Past_catches:_Catfish,_parts_eaten",
 "Caught_Catfish,_cooking_method" ,"Past_catches:_Catfish,_cooking_method" )
 
 check3 <-fisherdb %>% select(
   "Caught_Bluegill,_times_eaten","Past_catches:_Bluegill,_times_eaten",
   "Caught_Bluegill',_last_time_eaten","Past_catches:_Bluegill,_last_time_eaten",
-  "Caught_Bluegill,_amount_eaten","Past_catches:_Blue_gill,_amount_eaten",                     
+  "Caught_Bluegill,_servings_eaten","Past_catches:_Blue_gill,_servings_eaten",                     
  "Caught_Bluegill,_parts_eaten", "Past_catches:_Bluegill,_parts_eaten",
 "Caught_Bluegill,_cooking_method" ,"Past_catches:_Bluegill,_cooking_method"
 )
 check4 <-fisherdb %>% select(
    "Caught_Common_Carp,_times_eaten","Past_catches:_Common_Carp,_times_eaten",
    "Caught_Common_Carp,_last_time_eaten","Past_catches:_Common_Carp,_last_time_eaten",
-  "Caught_Common_Carp,_amount_eaten","Past_catches:_Common_Carp,_amount_eaten",                     
+  "Caught_Common_Carp,_servings_eaten","Past_catches:_Common_Carp,_servings_eaten",                     
  "Caught_Common_Carp,_parts_eaten", "Past_catches:_Common_Carp,_parts_eaten",
 "Caught_Common_Carp,_cooking_method" ,"Past_catches:_Common_Carp,_cooking_method"
 )
 check5 <-fisherdb %>% select(
    "Caught_Bass,_times_eaten","Past_catches:_Bass,_times_eaten",
    "Caught_Bass,_last_time_eaten","Past_catches:_Bass,_last_time_eaten",
-  "Caught_Bass,_amount_eaten","Past_catches:_Bass,_amount_eaten",                     
+  "Caught_Bass,_servings_eaten","Past_catches:_Bass,_servings_eaten",                     
  "Caught_Bass,_parts_eaten", "Past_catches:_Bass,_parts_eaten",
 "Caught_Bass,_cooking_method" ,"Past_catches:_Bass,_cooking_method"
 )
 check6 <-fisherdb %>% select(
    "Caught_Crappie,_times_eaten","Past_catches:_Crappie,_times_eaten",
    "Caught_Crappie,_last_time_eaten","Past_catches:_Crappie,_last_time_eaten",
-  "Caught_Crappie,_amount_eaten","Past_catches:_Crappie,_amount_eaten",                     
+  "Caught_Crappie,_servings_eaten","Past_catches:_Crappie,_servings_eaten",                     
  "Caught_Crappie,_parts_eaten", "Past_catches:_Crappie,_parts_eaten",
 "Caught_Crappie,_cooking_method" ,"Past_catches:_Crappie,_cooking_method"
 )
 check7 <-fisherdb %>% select(
    "Caught_Tilapia,_times_eaten","Past_catches:_Tilapia,_times_eaten",
    "Caught_Tilapia,_last_time_eaten","Past_catches:_Tilapia,_last_time_eaten",
-  "Caught_Tilapia,_amount_eaten","Past_catches:_Tilapia,_amount_eaten",                     
+  "Caught_Tilapia,_servings_eaten","Past_catches:_Tilapia,_servings_eaten",                     
  "Caught_Tilapia,_parts_eaten", "Past_catches:_Tilapia,_parts_eaten",
 "Caught_Tilapia,_cooking_method" ,"Past_catches:_Tilapia,_cooking_method"
 )
 check8 <-fisherdb %>% select(
    "Caught_Other,_times_eaten","Past_catches:_other,_times_eaten",
    "Caught_Other,_last_time_eaten","Past_catches:_other,_last_time_eaten",
-  "Caught_Other,_amount_eaten","Past_catches:_other,_amount_eaten",                     
+  "Caught_Other,_servings_eaten","Past_catches:_other,_servings_eaten",                     
  "Caught_Other,_parts_eaten", "Past_catches:_other,_parts_eaten",
 "Caught_other,_cooking_method" ,"Past_catches:_other,_cooking_method"
 )
@@ -452,21 +452,21 @@ nrow(Other_consumers)
 consumers <- consumers %>%
   mutate(
     rainbow_trout_g_day = na_if(
-      ((`Past_catches:_Rainbow_Trout,_times_eaten_numeric`*`Past_catches:_Rainbow_Trout,_amount_eaten_numeric` * 227) / 28), 0),
+      ((`Past_catches:_Rainbow_Trout,_times_eaten_numeric`*`Past_catches:_Rainbow_Trout,_servings_eaten_numeric` * 227) / 28), 0),
     catfish_g_day = na_if(
-      ((`Past_catches:_Catfish,_times_eaten_numeric`*`Past_catches:_Catfish,_amount_eaten_numeric` * 227) / 28), 0),
+      ((`Past_catches:_Catfish,_times_eaten_numeric`*`Past_catches:_Catfish,_servings_eaten_numeric` * 227) / 28), 0),
     bluegill_g_day = na_if(
-      ((`Past_catches:_Bluegill,_times_eaten_numeric`*`Past_catches:_Blue_gill,_amount_eaten_numeric` * 227) / 28), 0),
+      ((`Past_catches:_Bluegill,_times_eaten_numeric`*`Past_catches:_Blue_gill,_servings_eaten_numeric` * 227) / 28), 0),
     carp_g_day = na_if(
-      ((`Past_catches:_Common_Carp,_times_eaten_numeric`*`Past_catches:_Common_Carp,_amount_eaten_numeric` * 227) / 28), 0),
+      ((`Past_catches:_Common_Carp,_times_eaten_numeric`*`Past_catches:_Common_Carp,_servings_eaten_numeric` * 227) / 28), 0),
     bass_g_day = na_if(
-      ((`Past_catches:_Bass,_times_eaten_numeric`*`Past_catches:_Bass,_amount_eaten_numeric` * 227) / 28), 0),
+      ((`Past_catches:_Bass,_times_eaten_numeric`*`Past_catches:_Bass,_servings_eaten_numeric` * 227) / 28), 0),
     crappie_g_day = na_if(
-      ((`Past_catches:_Crappie,_times_eaten_numeric`*`Past_catches:_Crappie,_amount_eaten_numeric` * 227) / 28), 0),
+      ((`Past_catches:_Crappie,_times_eaten_numeric`*`Past_catches:_Crappie,_servings_eaten_numeric` * 227) / 28), 0),
     tilapia_g_day = na_if(
-      ((`Past_catches:_Tilapia,_times_eaten_numeric`*`Past_catches:_Tilapia,_amount_eaten_numeric` * 227) / 28), 0),
+      ((`Past_catches:_Tilapia,_times_eaten_numeric`*`Past_catches:_Tilapia,_servings_eaten_numeric` * 227) / 28), 0),
     other_g_day = na_if(
-      ((`Past_catches:_other,_times_eaten_numeric`*`Past_catches:_other,_amount_eaten_numeric` * 227) / 28), 0)
+      ((`Past_catches:_other,_times_eaten_numeric`*`Past_catches:_other,_servings_eaten_numeric` * 227) / 28), 0)
   )
 
 
@@ -487,14 +487,14 @@ Other_consumers <- NULL
 
 ###Check consumption calcs
 # consumption_check <- consumers %>% select(
-#   `Past_catches:_Rainbow_Trout,_times_eaten_numeric`,`Past_catches:_Rainbow_Trout,_amount_eaten_numeric`,rainbow_trout_g_day,
-#   catfish_g_day,`Past_catches:_Catfish,_times_eaten_numeric`,`Past_catches:_Catfish,_amount_eaten_numeric`,
-#   bluegill_g_day,`Past_catches:_Bluegill,_times_eaten_numeric`,`Past_catches:_Blue_gill,_amount_eaten_numeric`,
-#   carp_g_day,`Past_catches:_Common_Carp,_times_eaten_numeric`,`Past_catches:_Common_Carp,_amount_eaten_numeric`,
-#   bass_g_day,`Past_catches:_Bass,_times_eaten_numeric`,`Past_catches:_Bass,_amount_eaten_numeric`,
-#   crappie_g_day, `Past_catches:_Crappie,_times_eaten_numeric`,`Past_catches:_Crappie,_amount_eaten_numeric`,
-#   tilapia_g_day,`Past_catches:_Tilapia,_times_eaten_numeric`,`Past_catches:_Tilapia,_amount_eaten_numeric`,
-#   other_g_day,`Past_catches:_other,_times_eaten_numeric`,`Past_catches:_other,_amount_eaten_numeric`
+#   `Past_catches:_Rainbow_Trout,_times_eaten_numeric`,`Past_catches:_Rainbow_Trout,_servings_eaten_numeric`,rainbow_trout_g_day,
+#   catfish_g_day,`Past_catches:_Catfish,_times_eaten_numeric`,`Past_catches:_Catfish,_servings_eaten_numeric`,
+#   bluegill_g_day,`Past_catches:_Bluegill,_times_eaten_numeric`,`Past_catches:_Blue_gill,_servings_eaten_numeric`,
+#   carp_g_day,`Past_catches:_Common_Carp,_times_eaten_numeric`,`Past_catches:_Common_Carp,_servings_eaten_numeric`,
+#   bass_g_day,`Past_catches:_Bass,_times_eaten_numeric`,`Past_catches:_Bass,_servings_eaten_numeric`,
+#   crappie_g_day, `Past_catches:_Crappie,_times_eaten_numeric`,`Past_catches:_Crappie,_servings_eaten_numeric`,
+#   tilapia_g_day,`Past_catches:_Tilapia,_times_eaten_numeric`,`Past_catches:_Tilapia,_servings_eaten_numeric`,
+#   other_g_day,`Past_catches:_other,_times_eaten_numeric`,`Past_catches:_other,_servings_eaten_numeric`
 #   )
 # 
 # # write.csv(consumption_check, "consumption_check.csv", row.names = FALSE)
@@ -611,9 +611,9 @@ consumers_long <- consumers %>%
   mutate(Catches_Info = gsub("_", " ", Catches_Info)) %>%
   mutate(Lakes = trimws(Lakes))%>%
   # Step 3: Select the columns to keep
-  select(rowID, Age_numeric, Observed_Gender, Catches_Info, Lakes, starts_with("Past_catches:") & ends_with(",_times_eaten_numeric"), starts_with("Past_catches:") & ends_with(",_amount_eaten_numeric"),
+  select(rowID, Age_numeric, Observed_Gender, Catches_Info, Lakes, starts_with("Past_catches:") & ends_with(",_times_eaten_numeric"), starts_with("Past_catches:") & ends_with(",_servings_eaten_numeric"),
         starts_with("Past_catches:") & ends_with("parts_eaten"), starts_with("Past_catches:") & ends_with("_cooking_method"),`Past_catches:_Other,_list_species`, Annual_Household_Income, Number_in_household, Ethnicity)  %>%
-  rename(`Past_catches:_Bluegill,_amount_eaten_numeric`= `Past_catches:_Blue_gill,_amount_eaten_numeric`)%>% 
+  rename(`Past_catches:_Bluegill,_servings_eaten_numeric`= `Past_catches:_Blue_gill,_servings_eaten_numeric`)%>% 
   ### If person specified a specific number of times fish eaten from each lake, separate these manually
   separate(Lakes, into = c("Lakes", "times_from_lake"), sep = "\\(", fill = "right") %>%
   mutate(times_from_lake = str_extract(times_from_lake, "\\d+"),
@@ -646,10 +646,10 @@ consumers_long <- consumers %>%
       times_from_lake,
       `Past_catches:_Common_Carp,_times_eaten_numeric`
     ),
-    `Past_catches:_Crappie,_amount_eaten_numeric` = if_else(
+    `Past_catches:_Crappie,_servings_eaten_numeric` = if_else(
       Catches_Info == "Crappie" & !is.na(times_from_lake),
       times_from_lake,
-      `Past_catches:_Crappie,_amount_eaten_numeric`
+      `Past_catches:_Crappie,_servings_eaten_numeric`
     ),
     `Past_catches:_Tilapia,_times_eaten_numeric` = if_else(
       Catches_Info == "Tilapia" & !is.na(times_from_lake),
@@ -668,14 +668,14 @@ consumers_long <- consumers %>%
   ###Calculate consumption rate of each fish at each lake per person
 consumers_long <- consumers_long %>% 
   mutate(daily_intake = case_when(
-    Catches_Info == "Rainbow Trout" ~ `Past_catches:_Rainbow_Trout,_times_eaten_numeric` * `Past_catches:_Rainbow_Trout,_amount_eaten_numeric`,
-    Catches_Info == "Catfish" ~ `Past_catches:_Catfish,_times_eaten_numeric` * `Past_catches:_Catfish,_amount_eaten_numeric`,
-    Catches_Info == "Common Carp" ~ `Past_catches:_Common_Carp,_times_eaten_numeric` * `Past_catches:_Common_Carp,_amount_eaten_numeric`,
-    Catches_Info == "Crappie" ~ `Past_catches:_Crappie,_times_eaten_numeric` * `Past_catches:_Crappie,_amount_eaten_numeric`,
-    Catches_Info == "Other" ~ `Past_catches:_other,_times_eaten_numeric` * `Past_catches:_other,_amount_eaten_numeric`,
-    Catches_Info == "Tilapia" ~ `Past_catches:_Tilapia,_times_eaten_numeric` * `Past_catches:_Tilapia,_amount_eaten_numeric`,
-    Catches_Info == "Bluegill" ~ `Past_catches:_Bluegill,_times_eaten_numeric` * `Past_catches:_Bluegill,_amount_eaten_numeric`,
-    Catches_Info == "Bass" ~ `Past_catches:_Bass,_times_eaten_numeric` * `Past_catches:_Bass,_amount_eaten_numeric`,
+    Catches_Info == "Rainbow Trout" ~ `Past_catches:_Rainbow_Trout,_times_eaten_numeric` * `Past_catches:_Rainbow_Trout,_servings_eaten_numeric`,
+    Catches_Info == "Catfish" ~ `Past_catches:_Catfish,_times_eaten_numeric` * `Past_catches:_Catfish,_servings_eaten_numeric`,
+    Catches_Info == "Common Carp" ~ `Past_catches:_Common_Carp,_times_eaten_numeric` * `Past_catches:_Common_Carp,_servings_eaten_numeric`,
+    Catches_Info == "Crappie" ~ `Past_catches:_Crappie,_times_eaten_numeric` * `Past_catches:_Crappie,_servings_eaten_numeric`,
+    Catches_Info == "Other" ~ `Past_catches:_other,_times_eaten_numeric` * `Past_catches:_other,_servings_eaten_numeric`,
+    Catches_Info == "Tilapia" ~ `Past_catches:_Tilapia,_times_eaten_numeric` * `Past_catches:_Tilapia,_servings_eaten_numeric`,
+    Catches_Info == "Bluegill" ~ `Past_catches:_Bluegill,_times_eaten_numeric` * `Past_catches:_Bluegill,_servings_eaten_numeric`,
+    Catches_Info == "Bass" ~ `Past_catches:_Bass,_times_eaten_numeric` * `Past_catches:_Bass,_servings_eaten_numeric`,
     .default = NA
   )) %>%
   mutate(daily_intake = (daily_intake * 227)/28) %>%
@@ -1054,7 +1054,7 @@ lake_results_df <- do.call(rbind, lapply(lakes, analyze_lake, data = parts_consu
 print(lake_results_df)
 
 ```
-##Cooking methods used
+##Cooking methods used **Needs QA**
 ```{r}
 
 ##Use consumers dataframe to look at how fishers are preparing fish
@@ -1308,7 +1308,8 @@ consumer_x_income <- consumers_long %>%
   mutate(Annual_Household_Income = as.factor(Annual_Household_Income))
 
 
-###NEEDS fixing - currently counting multipul per person becuase in logn format
+###NEEDS fixing - currently counting multiple people per person because in long format
+##Tommy - need to summarize so that only one row is counted per person, then check numbers with the excel sheet to see if we are getting the same thing
 income_counts <- consumer_x_income %>%
   group_by( Annual_Household_Income) %>%
   summarise(fisher_count = n()) %>%
@@ -1979,10 +1980,10 @@ write.csv(LA_county_summary_table, "consumption_LA_county_summary.csv", row.name
 #check class of columns before running functions
 
 columns_to_check <- c(
-  "Amount_eaten_(Person_1)_numeric", "Times_eaten_last_4_weeks__(Person_1)_numeric",
-  "Amount_eaten_(Person_2)_numeric", "Times_eaten_last_4_weeks__(Person_2)_numeric",
-  "Amount_eaten_(Person_3)_numeric", "Times_eaten_last_4_weeks__(Person_3)_numeric",
-  "Amount_eaten_(Person_4)_numeric", "Times_eaten_last_4_weeks__(Person_4)_numeric"
+  "Servings_eaten_(Person_1)_numeric", "Times_eaten_last_4_weeks__(Person_1)_numeric",
+  "Servings_eaten_(Person_2)_numeric", "Times_eaten_last_4_weeks__(Person_2)_numeric",
+  "Servings_eaten_(Person_3)_numeric", "Times_eaten_last_4_weeks__(Person_3)_numeric",
+  "Servings_eaten_(Person_4)_numeric", "Times_eaten_last_4_weeks__(Person_4)_numeric"
 )
 
 sapply(fisherdb[columns_to_check],class)
@@ -1991,10 +1992,10 @@ summary(fisherdb[columns_to_check])
 
 
 household_consumers <- fisherdb %>% filter(
-                  `Amount_eaten_(Person_1)_numeric` >0  & `Times_eaten_last_4_weeks__(Person_1)_numeric`>0|
-                  `Amount_eaten_(Person_2)_numeric` >0  & `Times_eaten_last_4_weeks__(Person_2)_numeric`>0|
-                  `Amount_eaten_(Person_3)_numeric` >0  & `Times_eaten_last_4_weeks__(Person_3)_numeric`>0|
-                  `Amount_eaten_(Person_4)_numeric` >0  & `Times_eaten_last_4_weeks__(Person_4)_numeric`>0
+                  `Servings_eaten_(Person_1)_numeric` >0  & `Times_eaten_last_4_weeks__(Person_1)_numeric`>0|
+                  `Servings_eaten_(Person_2)_numeric` >0  & `Times_eaten_last_4_weeks__(Person_2)_numeric`>0|
+                  `Servings_eaten_(Person_3)_numeric` >0  & `Times_eaten_last_4_weeks__(Person_3)_numeric`>0|
+                  `Servings_eaten_(Person_4)_numeric` >0  & `Times_eaten_last_4_weeks__(Person_4)_numeric`>0
 )
 
 summary(household_consumers[columns_to_check])
@@ -2017,10 +2018,10 @@ household_consumers_long <- household_consumers %>%
   ##Associate correct data with each record
   ###Calculate daily intake
   mutate(daily_intake = case_when(
-     household_member == "Person_1" ~ `Times_eaten_last_4_weeks__(Person_1)_numeric` *  `Amount_eaten_(Person_1)_numeric`,
-     household_member == "Person_2" ~ `Times_eaten_last_4_weeks__(Person_2)_numeric` * `Amount_eaten_(Person_2)_numeric`,
-     household_member == "Person_3" ~ `Times_eaten_last_4_weeks__(Person_3)_numeric` * `Amount_eaten_(Person_3)_numeric`,
-     household_member == "Person_4" ~ `Times_eaten_last_4_weeks__(Person_4)_numeric` * `Amount_eaten_(Person_4)_numeric`,
+     household_member == "Person_1" ~ `Times_eaten_last_4_weeks__(Person_1)_numeric` *  `Servings_eaten_(Person_1)_numeric`,
+     household_member == "Person_2" ~ `Times_eaten_last_4_weeks__(Person_2)_numeric` * `Servings_eaten_(Person_2)_numeric`,
+     household_member == "Person_3" ~ `Times_eaten_last_4_weeks__(Person_3)_numeric` * `Servings_eaten_(Person_3)_numeric`,
+     household_member == "Person_4" ~ `Times_eaten_last_4_weeks__(Person_4)_numeric` * `Servings_eaten_(Person_4)_numeric`,
     .default = NA
   )) %>%
 mutate(daily_intake = (daily_intake * 227)/28) %>%
@@ -2067,12 +2068,12 @@ mutate(hh_times_eaten = case_when(
     household_member == "Person_3" ~ `Times_eaten_last_4_weeks__(Person_3)_numeric`,
     household_member == "Person_4" ~ `Times_eaten_last_4_weeks__(Person_4)_numeric`,
 ))%>%
-  ###Associate amount eaten 
-mutate(hh_amount_eaten = case_when(
-  household_member == "Person_1" ~ `Amount_eaten_(Person_1)_numeric`,
-    household_member == "Person_2" ~ `Amount_eaten_(Person_2)_numeric`,
-    household_member == "Person_3" ~ `Amount_eaten_(Person_3)_numeric`,
-    household_member == "Person_4" ~ `Amount_eaten_(Person_4)_numeric`,
+  ###Associate Servings eaten 
+mutate(hh_servings_eaten = case_when(
+  household_member == "Person_1" ~ `Servings_eaten_(Person_1)_numeric`,
+    household_member == "Person_2" ~ `Servings_eaten_(Person_2)_numeric`,
+    household_member == "Person_3" ~ `Servings_eaten_(Person_3)_numeric`,
+    household_member == "Person_4" ~ `Servings_eaten_(Person_4)_numeric`,
 ))%>%
 
   ###Remove extra rows
@@ -2169,7 +2170,7 @@ check <- hh_consumers_species_long %>% filter(hh_consumerID ==45)
 
 ###Calculate daily intake by fish species
 hh_consumers_species_long <- hh_consumers_species_long %>%
-mutate(hh_daily_intake_per_fish = (hh_amount_eaten*hh_sp_consumed_times*227)/28)%>%
+mutate(hh_daily_intake_per_fish = (hh_servings_eaten*hh_sp_consumed_times*227)/28)%>%
   ###Next steps associate lakes + fish from person interviewed with household members...
   mutate (hh_lake = case_when(
     hh_species_consumed == "Rainbow trout"  ~ `Past_catches:_Rainbow_Trout,_times_eaten,_where`,
@@ -2718,6 +2719,95 @@ ggsave(
 )
 
 ```
+#Why not eating fish **Needs QA**
+```{r}
+##This is an analysis of the reasons fishers gave for not wanting to eat fish at the lakes surveyed
+
+# Subset all columns that end with "_why"
+
+reasons_not_eating <- fisherdb %>%
+  select(ends_with("_why")) %>%
+  mutate(
+    fisherID = row_number(),
+    Combined_Responses = apply(.[, 1:16], 1, function(row) {
+      # Combine responses, remove NAs and "NA"
+      combined = paste(row[!is.na(row) & row != "NA"], collapse = ", ")
+      # Remove duplicates by splitting, deduplicating
+      unique_responses = unique(str_trim(str_split(combined, ",\\s*")[[1]]))
+      paste(unique_responses, collapse = ", ")
+    })
+  ) %>%
+  filter(Combined_Responses != "") %>%
+  select(fisherID, Combined_Responses) %>%
+  separate_rows(Combined_Responses, sep = ",\\s*") %>%
+  group_by(fisherID) %>%
+  mutate(Response_Column = paste0("Response_", row_number())) %>%
+  pivot_wider(names_from = Response_Column, values_from = Combined_Responses) %>%
+  ungroup() %>%
+  mutate(across(everything(), as.character)) %>% # Ensure compatibility with case_when
+  mutate(
+    across(everything(), ~ case_when(
+      . == "hobby" ~ "Hobby",
+      . == "Water Quality" ~ "Water quality",
+      . == "water quality" ~ "Water quality",
+      . == "population" ~ "Population",
+      . == "size" ~ "Size",
+      . == "preference" ~ "Preference",
+      . == "Water quality (Peck Road)" ~ "Water quality",
+      . == "No Answer" ~ NA,
+      . == "Unknown" ~ NA,
+      . == "Not surveyed" ~ NA,
+      . == "No answer" ~ NA,
+      TRUE ~ .  # Keep other values unchanged
+    ))
+  )
+
+#Convert to long format
+
+reasons_not_eating_long <- reasons_not_eating %>%
+  pivot_longer(
+    cols = Response_1:Response_6,
+    names_to = "num",
+    values_to = "response"
+  )
+summary(as.factor(reasons_not_eating_long$response))
+#1841 NAs
+#Dataframe length 2322
+#Dataframe length should be 481 after NAs are removed
+
+#Remove NAs
+reasons_not_eating_long <- reasons_not_eating_long %>%
+   filter(!is.na(response))
+
+summary(as.factor(reasons_not_eating_long$response))
+
+##Compress answers so that not duplicate answers for each fisher
+##Then calculate % response based on the number of unique fishers
+
+reasons_not_eating_long <- reasons_not_eating_long %>%
+  group_by(fisherID)%>%
+  summarize(
+    unique_responses = paste(unique(response), collapse = ", ")
+  )%>%
+  ungroup()%>%
+  separate_rows(unique_responses, sep = ",\\s*")
+
+summary(as.factor(reasons_not_eating_long$unique_responses))
+num_fishers <- n_distinct(reasons_not_eating_long$fisherID)
+
+##Calculate n & percent of each response
+
+reasons_count <- reasons_not_eating_long %>%
+  count(unique_responses, name = "reasons_count")%>%
+  arrange(desc(reasons_count))%>%
+  mutate(
+    "reasons_percent" = round((reasons_count/num_fishers)*100,1)
+  )
+
+
+```
+
+
 #WQ question
 ```{r}
 ##This analysis is of fishers who said they did not eat fish at the lakes surveyed due to water quality concerns. 

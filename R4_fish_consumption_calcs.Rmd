@@ -2452,6 +2452,8 @@ hh_consumers_species_long_adv<- hh_consumers_species_long_adv %>%
     TRUE ~ updated_lake_name                     # Keep other values unchanged
   ))
 
+check <- hh_consumers_species_long_adv %>% select(fisherID, hh_consumerID)
+
 summary(as.factor(hh_consumers_species_long_adv$hh_species_consumed))
 summary(as.factor(hh_consumers_species_long_adv$updated_lake_name))
 list(unique(hh_consumers_species_long_adv$updated_lake_name))
@@ -2459,7 +2461,7 @@ length(unique(hh_consumers_species_long_adv$updated_lake_name))
 # List of fish species to analyze
 fish_species <- list(
   "All" = c("Rainbow trout", "Catfish", "Sunfish species", "Common carp", "Black bass species", "Crappie"),
-  "Rainbow trout" = "Rainbow trout",
+ "Rainbow trout" = "Rainbow trout",
   "Catfish" = "Catfish",
   "Sunfish species" = "Sunfish species",
   "Common carp" = "Common carp",
@@ -2546,7 +2548,7 @@ for (lake_name in names(lakes)) {
       
   ### All consumers consumption rate
   all_hh_consumption_rate <- hh_consumers_species_long_adv%>%
-    group_by(hh_consumerID) %>%
+    group_by(hh_consumerID, fisherID) %>%
     filter(hh_total_daily_intake > 0) %>%
     filter(hh_species_consumed %in% selected_fish) %>%
     filter(column %in% selected_age)%>%
@@ -2561,7 +2563,8 @@ for (lake_name in names(lakes)) {
       min = round(min(total_daily_intake, na.rm = TRUE)),
       max = round(max(total_daily_intake, na.rm = TRUE)),
       mean = round(mean(total_daily_intake, na.rm = TRUE)),
-      median = round(median(total_daily_intake, na.rm = TRUE))
+      median = round(median(total_daily_intake, na.rm = TRUE)),
+      num_households = n_distinct(fisherID)
     ) %>%
     mutate(lakes = lake_name) %>%
     mutate(fish = fish_name) %>%
@@ -2605,7 +2608,7 @@ hh_county_key <- hh_consumers_species_long_adv %>%
 
 hh_lakes_summary_table_export <-left_join(hh_lakes_summary_table,hh_county_key, by = "lakes")
 hh_lakes_summary_table_export <- hh_lakes_summary_table_export %>%
-  select(county,lakes, everything())
+  select(county,lakes,num_households, everything())
 
 
 # Write to CSV

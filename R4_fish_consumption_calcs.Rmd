@@ -446,7 +446,6 @@ lake_ethnicity <- fisher_charac %>%
   ungroup()%>%
   pivot_wider(names_from = Ethnicity, values_from = count, values_fill = 0)
 
-
 total_ethnicity <- fisher_charac %>%
   group_by(Ethnicity)%>%
   summarise(count = n())%>%
@@ -2033,6 +2032,12 @@ ggsave(
 ```{r ,include=FALSE}
 ##This is an analysis of the reasons fishers gave for not wanting to eat fish at the lakes surveyed
 # Subset all columns that end with "_why"
+# The total is lower here because: 
+# 62 did not provide any details about fish - many were new to fishing and had not caught anything
+# 23 surveys were conducted in January before the question was added
+# 45 said they planned to eat the fish
+# 12 missed the question
+
 reasons_not_eating <- fisherdb %>%
   select(Location, ends_with("_why"))%>%
   mutate(
@@ -2745,6 +2750,12 @@ write.csv(final_table, "cooking_methods.csv", row.names = FALSE)
 ##COME BACK TO QA
 ###address missing points & then rerun
 
+Surveyed_lakes_reported_income <- consumers_long %>%
+  filter(updated_lake_name %in% c("Alondra park", "Legg lake", "Peck Road"))%>%
+  distinct(rowID, .keep_all = TRUE)
+
+  summary(as.factor(Surveyed_lakes_reported_income$Annual_Household_Income))
+
 ##This chunk of code is for regression analysis (finding middle of income range). If we don't use this, remove
 
 consumers_x_income <- consumers_long %>%
@@ -3016,28 +3027,35 @@ summary(consumer_x_ethnicity$Ethnicity)
 
 ###Loop for number of people per ethnicity per lake
 
-lakes <- c("Alondra park", "Legg lake", "Peck Road")
-#lakes <- c("Legg lake")
+# Define lakes list with "All" category
+lakes <- list(
+  "All" = c("Alondra park", "Legg lake", "Peck Road"),
+  "Alondra park" = "Alondra park",
+  "Legg lake" = "Legg lake",
+  "Peck Road" = "Peck Road"
+)
+
 # Initialize an empty list to store results
 ethnicity_counts_list <- list()
 total_people_list <- list()  # To store total people for each lake
 
 # For loop to process each lake individually
-for (lake_name in lakes) {
+for (lake_name in names(lakes)) {  # Use names of the lakes list
+  selected_lakes <- lakes[[lake_name]]  # Extract the lake(s) for the current iteration
   
    ethnicity_counts <- consumer_x_ethnicity %>% 
-    filter(updated_lake_name == lake_name)%>%# Filter for the current lake
+    filter(updated_lake_name %in% lake_name)%>%# Filter for the current lake
     group_by(Ethnicity) %>%  # Group by cooking method
     summarise(count_consumers = n_distinct(rowID), .groups = "drop")  # Count occurrences
   
   #calculate total number of consumers at the lake
-    total_people_df <- consumer_x_ethnicity %>% filter(updated_lake_name == lake_name)
+    total_people_df <- consumer_x_ethnicity %>% filter(updated_lake_name %in% lake_name)
     total_people <- length(unique(total_people_df$rowID))
      total_people_list[[lake_name]] <- total_people  # Store total people for the lake
     
   #count total number of people exceeding threshold
      total_exceed_n <- consumer_x_ethnicity %>%
-       filter(updated_lake_name == lake_name)%>%
+       filter(updated_lake_name %in% lake_name)%>%
        filter(exceed_threshold_indiv_lake == TRUE)%>%
      group_by(Ethnicity) %>%  # Group by cooking method
     summarise(exceed_count = n_distinct(rowID), .groups = "drop")  # Count occurrences
@@ -3054,7 +3072,7 @@ dailyintake_x_ethnicity <- consumer_x_ethnicity %>%
     summarise(total_daily_intake = sum(daily_intake, na.rm = TRUE))
 
 consumption_rate_x_ethnicity <- dailyintake_x_ethnicity  %>%
-  filter(updated_lake_name == lake_name)%>%
+  filter(updated_lake_name %in% lake_name)%>%
   group_by(Ethnicity)%>%
     summarise(
       n = n(),
@@ -3094,6 +3112,93 @@ ethnicity_counts_combined <- ethnicity_counts_combined %>%
 
 write.csv(ethnicity_counts_combined, file="ethnicity_counts.csv", row.names = FALSE)
 
+
+###TEST
+
+# Define lakes list with "All" category
+lakes <- list(
+  "All" = c("Alondra park", "Legg lake", "Peck Road"),
+  "Alondra park" = "Alondra park",
+  "Legg lake" = "Legg lake",
+  "Peck Road" = "Peck Road"
+)
+
+# Initialize lists to store results
+ethnicity_counts_list <- list()
+total_people_list <- list()  # To store total people for each lake
+
+# For loop to process each lake individually
+for (lake_name in names(lakes)) {  # Use names of the lakes list
+  selected_lakes <- lakes[[lake_name]]  # Extract the lake(s) for the current iteration
+  
+  # Filter data for the selected lake(s)
+  ethnicity_counts <- consumer_x_ethnicity %>%
+    filter(updated_lake_name %in% selected_lakes) %>%
+    group_by(Ethnicity) %>%
+    summarise(count_consumers = n_distinct(rowID), .groups = "drop")
+  
+  # Calculate total number of consumers at the selected lake(s)
+  total_people_df <- consumer_x_ethnicity %>%
+    filter(updated_lake_name %in% selected_lakes)
+  total_people <- n_distinct(total_people_df$rowID)
+  total_people_list[[lake_name]] <- total_people  # Store total people for the lake
+  
+  # Count total number of people exceeding threshold
+  total_exceed_n <- consumer_x_ethnicity %>%
+    filter(updated_lake_name %in% selected_lakes) %>%
+    filter(exceed_threshold_indiv_lake == TRUE) %>%
+    group_by(Ethnicity) %>%
+    summarise(exceed_count = n_distinct(rowID), .groups = "drop")
+  
+  # Merge counts and exceed counts
+  ethnicity_counts <- full_join(ethnicity_counts, total_exceed_n, by = "Ethnicity") %>%
+    mutate(exceed_count = replace_na(exceed_count, 0))  # Replace NA with 0
+  
+  # Summarize daily intake by ethnicity
+  dailyintake_x_ethnicity <- consumer_x_ethnicity %>%
+    filter(updated_lake_name %in% selected_lakes) %>%
+    group_by(rowID, Ethnicity, updated_lake_name) %>%
+    summarise(total_daily_intake = sum(daily_intake, na.rm = TRUE), .groups = "drop")
+  
+  consumption_rate_x_ethnicity <- dailyintake_x_ethnicity %>%
+    group_by(Ethnicity) %>%
+    summarise(
+      n = n(),
+      min = round(min(total_daily_intake, na.rm = TRUE), 0),
+      max = round(max(total_daily_intake, na.rm = TRUE), 0),
+      mean = round(mean(total_daily_intake, na.rm = TRUE), 0),
+      median = round(median(total_daily_intake, na.rm = TRUE), 0),
+      .groups = "drop"
+    )
+  
+  # Merge with ethnicity counts
+  ethnicity_counts <- full_join(ethnicity_counts, consumption_rate_x_ethnicity, by = "Ethnicity")
+  
+  # Add lake information and percentages
+  ethnicity_counts <- ethnicity_counts %>%
+    mutate(
+      lake = lake_name,
+      count_consumers = as.numeric(count_consumers),
+      exceed_count = as.numeric(exceed_count),
+      total_people = total_people,
+      percent_consumers = round((count_consumers / total_people) * 100, 0),
+      per_exceed = round((exceed_count / total_people) * 100, 0),
+      count_exceed = exceed_count
+    )
+  
+  # Append to the list
+  ethnicity_counts_list[[lake_name]] <- ethnicity_counts
+}
+
+# Combine results from all lakes into a single dataframe
+ethnicity_counts_combined <- bind_rows(ethnicity_counts_list)
+
+ethnicity_counts_combined <- ethnicity_counts_combined %>%
+  mutate(per_ethnicity = round(count_consumers/total_people*100,0))%>%
+  select(lake,Ethnicity,per_ethnicity, count_consumers, total_people, everything())
+
+# View the results
+print(ethnicity_counts_combined)
 
 
 

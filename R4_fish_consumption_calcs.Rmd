@@ -411,7 +411,68 @@ anti_join_lakes <- anti_join(df_unique_lake_names, unique_lake_names_key, by=c("
 
 write.csv(anti_join_lakes, "anti_join_lakes.csv", row.names = FALSE)
 ```
+#Fisher characteristics
+```{r, include= FALSE}
 
+fisher_charac <- fisherdb %>% 
+  select(Location,Date,Observed_Gender,`Fishing_here:_Years`,`Fishing_here:_Months`, `Fishing_here:_Days`, Times_here_past_4_weeks,Age, Ethnicity,Employment,Annual_Household_Income, `Optional:_US_Native`)
+
+#Gender counts
+fisher_gender <- fisher_charac %>%
+  group_by(Location, Observed_Gender) %>%
+  summarise(count = n())%>%
+  ungroup()%>%
+  pivot_wider(names_from = Observed_Gender, values_from = count, values_fill = 0)
+
+
+total_gender <- fisher_charac %>%
+  group_by(Observed_Gender)%>%
+  summarise(count = n())%>%
+  ungroup()%>%
+  pivot_wider(names_from = Observed_Gender, values_from = count, values_fill = 0)%>%
+  mutate(Location = "All")
+
+fisher_gender <- bind_rows(fisher_gender, total_gender)
+
+fisher_gender <- fisher_gender %>% 
+  mutate(total_fishers = Female + Male + `Not recorded`,
+         per_male = round(Male/total_fishers*100,0))
+
+##Fisher ethncicity
+
+lake_ethnicity <- fisher_charac %>%
+  group_by(Location, Ethnicity) %>%
+  summarise(count = n())%>%
+  ungroup()%>%
+  pivot_wider(names_from = Ethnicity, values_from = count, values_fill = 0)
+
+
+total_ethnicity <- fisher_charac %>%
+  group_by(Ethnicity)%>%
+  summarise(count = n())%>%
+  ungroup()%>%
+  pivot_wider(names_from = Ethnicity, values_from = count, values_fill = 0)%>%
+  mutate(Location = "All")
+
+fisher_ethnicity <- bind_rows(lake_ethnicity, total_ethnicity)
+
+fisher_ethnicity <- fisher_ethnicity %>% 
+  mutate(Multiracial = `Multi: Asian or Pacific Islander, Hispanic or Latino` + `Multi: Asian or Pacific Islander, White`+`Multi: Hispanic or Latino, White`)%>%
+  select(-`Multi: Asian or Pacific Islander, Hispanic or Latino`,-`Multi: Asian or Pacific Islander, White`, -`Multi: Hispanic or Latino, White`)
+
+fisher_ethnicity <- fisher_ethnicity %>%
+ mutate(total = rowSums(select(., -Location), na.rm = TRUE))%>%
+  mutate(total_reported = total - Unknown - `Prefer not to say`)%>%
+  mutate(across(
+    -c(Location),  # Exclude the "Location" and "total" columns
+    ~ round(. / total * 100, 0),    # Calculate the percentage
+    .names = "percent_{.col}"  # Name the new columns with "percent_" prefix
+  ))
+  
+# Write to CSV
+write.csv(fisher_ethnicity, "fisher_ethnicity.csv", row.names = FALSE)
+
+```
 
 #Calculate consumption rate (Fishers)
 ```{r ,include=FALSE}
@@ -1861,6 +1922,17 @@ fisher_hist <-ggplot(fisherdb, aes(x = Age_numeric, fill = Observed_Gender)) +
         legend.position = "top",)
 
 fisher_hist
+Legg <- fisherdb %>% filter(Location == "Legg")
+Alondra <- fisherdb %>% filter(Location == "Alondra")
+Peck <- fisherdb %>% filter(Location == "Peck Road")
+Magic_Johnson <- fisherdb %>% filter(Location == "Magic Johnson")
+
+summary(fisherdb$Age_numeric)
+summary(Legg$Age_numeric)
+summary(Alondra$Age_numeric)
+summary(Peck$Age_numeric)
+summary(Magic_Johnson$Age_numeric)
+
 
 # Check that each rowID has only ONE unique Age_numeric and ONE unique Observed_Gender value
 check_consistency <- consumers_long %>%
@@ -2006,6 +2078,48 @@ reasons_not_eating <- fisherdb %>%
     Response_5 = Response_6,
     Response_6 = Response_7,
   )
+
+##Inspect respondents who did not provide an answer
+no_reason <- fisherdb %>%
+  mutate(
+    across(ends_with("_why"), ~ case_when(
+      . == "hobby" ~ "Hobby",
+      . == "Water Quality" ~ "Water quality",
+      . == "water quality" ~ "Water quality",
+      . == "population" ~ "Population",
+      . == "size" ~ "Size",
+      . == "preference" ~ "Preference",
+      . == "Water quality (Peck Road)" ~ "Water quality",
+      . == "No Answer" ~ NA,
+      . == "Unknown" ~ NA,
+      . == "Not surveyed" ~ NA,
+      . == "No answer" ~ NA,
+      TRUE ~ .  # Keep other values unchanged
+    )
+    ))
+
+no_reason <- no_reason %>%
+  #filter(if_all(ends_with("_why"), is.na)) %>%
+  mutate(Combined_Responses = apply(
+    select(., ends_with("_why")), 
+    1, 
+    function(row) {
+      # Combine responses, remove NAs and "NA"
+      combined = paste(row[!is.na(row) & row != "NA"], collapse = ", ")
+      # Remove duplicates by splitting, deduplicating, and trimming
+      unique_responses = unique(str_trim(str_split(combined, ",\\s*")[[1]]))
+      paste(unique_responses, collapse = ", ")
+    }
+  ))%>%
+  filter(is.na(Combined_Responses) | Combined_Responses == "" )
+
+response_summary <- no_reason %>%
+  summarise(
+    with_response = sum(!is.na(Combined_Responses) & Combined_Responses != ""),
+    blank_response = sum(is.na(Combined_Responses) | Combined_Responses == "")
+  )
+
+write.csv(no_reason, "no_reason.csv", row.names = FALSE)
 
 #Convert to long format
 
@@ -2560,11 +2674,64 @@ mutate(avg_income_norm = avg_income/Number_in_household) %>%
   mutate(total_daily_intake = sum(daily_intake))%>%
   ungroup()
 
-ggplot(consumers_x_income, aes(x=avg_income, y=total_daily_intake))+
-  geom_point()+
+#filter for surveyed lakes
+consumers_x_income <- consumers_x_income %>%
+filter(updated_lake_name %in% c("Alondra park", "Legg lake", "Peck Road"))
+
+#count unique rowIDs
+unique_rowID_count <- consumers_x_income %>%
+  summarise(unique_rowIDs = n_distinct(rowID)) %>%
+  pull(unique_rowIDs)
+
+#remove duplicate row IDs
+consumers_x_income <- consumers_x_income %>%
+  distinct(rowID, .keep_all = TRUE)%>%
+  filter(Annual_Household_Income != "Prefer not to say")%>%
+
+
+ggplot(consumers_x_income, aes(x=(avg_income), y=log(total_daily_intake)))+
+  geom_jitter()+
   geom_smooth(method= "lm", color="red")+
   stat_regline_equation()+
   theme(panel.grid = element_blank())
+
+# Fit a linear model to the log-transformed data
+model <- lm(log(total_daily_intake) ~ (avg_income), data = consumers_x_income)
+
+# Summary of the model to extract p-value and other statistics
+summary(model)
+
+##Regression of frequency of fish consumption x income
+
+income_x_freq <- consumers_x_income %>%
+  mutate(freq_consump = rowSums(select(., 
+    `Past_catches:_Rainbow_Trout,_times_eaten_numeric`,
+    `Past_catches:_Catfish,_times_eaten_numeric`,
+    `Past_catches:_Bluegill,_times_eaten_numeric`,
+    `Past_catches:_Common_Carp,_times_eaten_numeric`,
+    `Past_catches:_Bass,_times_eaten_numeric`,
+    `Past_catches:_Crappie,_times_eaten_numeric`,
+    `Past_catches:_Tilapia,_times_eaten_numeric`,
+    `Past_catches:_other,_times_eaten_numeric`
+  ), na.rm = TRUE))
+
+
+ggplot(income_x_freq, aes(x=(avg_income), y=(freq_consump)))+
+  geom_jitter()+
+  geom_smooth(method= "lm", color="red")+
+  stat_regline_equation()+
+  theme(panel.grid = element_blank())
+
+# Fit a linear model to the log-transformed data
+model <- lm((freq_consump) ~ (avg_income), data = income_x_freq)
+
+# Summary of the model to extract p-value and other statistics
+summary(model)
+
+
+```
+
+```{r}
 
 ### leaving income ranges as is:
 summary(as.factor(consumers_long$Annual_Household_Income))
@@ -2581,76 +2748,91 @@ consumer_x_income <- consumers_long %>%
 
 ###Loop for number of people per income per lake
 
-lakes <- c("Alondra park", "Legg lake", "Peck Road")
-#lakes <- c("Legg lake")
-# Initialize an empty list to store results
+
+# Define lakes list with "All" category
+lakes <- list(
+  "All" = c("Alondra park", "Legg lake", "Peck Road"),
+  "Alondra park" = "Alondra park",
+  "Legg lake" = "Legg lake",
+  "Peck Road" = "Peck Road"
+)
+
+# Initialize empty lists to store results
 income_counts_list <- list()
-total_people_list <- list()  # To store total people for each lake
+total_people_list <- list()
 
-# For loop to process each lake individually
-for (lake_name in lakes) {
+# For loop to process each lake, including the "All" category
+for (lake_name in names(lakes)) {
+  selected_lakes <- lakes[[lake_name]]  # Get lakes for current category
   
-   income_counts <- consumer_x_income %>% 
-    filter(updated_lake_name == lake_name)%>%# Filter for the current lake
-    group_by(Annual_Household_Income) %>%  # Group by cooking method
-    summarise(count_consumers = n_distinct(rowID), .groups = "drop")  # Count occurrences
+  # Filter data for the current lake(s)
+  lake_data <- consumer_x_income %>%
+    filter(updated_lake_name %in% selected_lakes)  # Use `%in%` to handle multiple lakes
   
-  #calculate total number of consumers at the lake
-    total_people_df <- consumer_x_income %>% filter(updated_lake_name == lake_name)
-    total_people <- length(unique(total_people_df$rowID))
-     total_people_list[[lake_name]] <- total_people  # Store total people for the lake
-    
-  #count total number of people exceeding threshold
-     total_exceed_n <- consumer_x_income %>%
-       filter(updated_lake_name == lake_name)%>%
-       filter(exceed_threshold_indiv_lake == TRUE)%>%
-     group_by(Annual_Household_Income) %>%  # Group by cooking method
-    summarise(exceed_count = n_distinct(rowID), .groups = "drop")  # Count occurrences
-       
-    income_counts<-full_join(income_counts,total_exceed_n, by = "Annual_Household_Income")  
-    income_counts <- income_counts %>%
-      mutate(exceed_count = case_when(
-      is.na(exceed_count) ~ "0",  # Replace NA with "0" (or other desired value)
-      TRUE ~ as.character(exceed_count)  # Keep all other values as they are
-  ))
-    
-dailyintake_x_income <- consumer_x_income %>%
+  # Count distinct incomes for the current lake(s)
+  income_counts <- lake_data %>%
+    group_by(Annual_Household_Income) %>%
+    summarise(count_consumers = n_distinct(rowID), .groups = "drop")
+  
+  # Calculate total number of consumers at the current lake(s)
+  total_people <- lake_data %>%
+    summarise(total_people = n_distinct(rowID)) %>%
+    pull(total_people)
+  
+  # Store total people for the lake
+  total_people_list[[lake_name]] <- total_people
+  
+  # Count total number of people exceeding threshold
+  total_exceed_n <- lake_data %>%
+    filter(exceed_threshold_indiv_lake == TRUE) %>%
+    group_by(Annual_Household_Income) %>%
+    summarise(exceed_count = n_distinct(rowID), .groups = "drop")
+  
+  # Join dataframes and handle NA
+  income_counts <- full_join(income_counts, total_exceed_n, by = "Annual_Household_Income") %>%
+    mutate(
+      exceed_count = replace_na(exceed_count, 0)  # Replace NA with 0
+    )
+  
+  # Summarise daily intake by income
+  dailyintake_x_income <- lake_data %>%
     group_by(rowID, Annual_Household_Income, updated_lake_name) %>%
-    summarise(total_daily_intake = sum(daily_intake, na.rm = TRUE))
-
-consumption_rate_x_income <- dailyintake_x_income  %>%
-  filter(updated_lake_name == lake_name)%>%
-  group_by(Annual_Household_Income)%>%
+    summarise(total_daily_intake = sum(daily_intake, na.rm = TRUE), .groups = "drop")
+  
+  consumption_rate_x_income <- dailyintake_x_income %>%
+    group_by(Annual_Household_Income) %>%
     summarise(
       n = n(),
       min = round(min(total_daily_intake, na.rm = TRUE)),
       max = round(max(total_daily_intake, na.rm = TRUE)),
       mean = round(mean(total_daily_intake, na.rm = TRUE)),
-      median = round(median(total_daily_intake, na.rm = TRUE))
-    )%>%
-  ungroup()
-
-income_counts <-full_join(income_counts,consumption_rate_x_income, by = "Annual_Household_Income" )
-     
-  # Add lake information to the result
- # Add lake information and calculate percentage
-income_counts <- income_counts %>%
-  mutate(
-    lake = lake_name,
-    count_consumers = as.numeric(count_consumers),  # Ensure count is numeric
-    exceed_count = as.numeric(exceed_count),  # Ensure exceed_count is numeric
-    total_people = as.numeric(total_people),  # Ensure total_people is numeric
-    percent_consumers = round((count_consumers / total_people) * 100, 0),  # Calculate percentage
-    per_exceed = round((exceed_count / total_people) * 100, 0),  # Calculate exceed percentage
-    count_exceed = exceed_count
-  )
+      median = round(median(total_daily_intake, na.rm = TRUE)),
+      .groups = "drop"
+    )
+  
+  # Join with income counts
+  income_counts <- full_join(income_counts, consumption_rate_x_income, by = "Annual_Household_Income")
+  
+  # Add lake information and percentages
+  income_counts <- income_counts %>%
+    mutate(
+      lake = lake_name,
+      count_consumers = as.numeric(count_consumers),
+      exceed_count = as.numeric(exceed_count),
+      percent_consumers = round((count_consumers / total_people) * 100, 0),
+      per_exceed = round((exceed_count / total_people) * 100, 0)
+    )
   
   # Append to the list
   income_counts_list[[lake_name]] <- income_counts
 }
 
-# Combine results from all lakes into a single dataframe
-income_counts_combined <- bind_rows(income_counts_list)
+# Combine all results into a single dataframe
+combined_income_counts <- bind_rows(income_counts_list)
+
+# View results
+print(combined_income_counts)
+
 
 ##Rearrange and simplify output 
 income_counts_combined <- income_counts_combined %>%

@@ -971,6 +971,7 @@ age <- list(
 )
 
 lakes <- list(
+  "All" = c("Alondra park","Legg lake", "Peck Road","Magic Johnson Lakes" ),
   "Alondra park" = "Alondra park",
   "Legg lake" = "Legg lake",
   "Magic Johnson Lakes" = "Magic Johnson Lakes",
@@ -1591,7 +1592,7 @@ write.csv(hh_consumers_species_long_adv, "hh_consumers_long.csv", , row.names = 
 ```
 
 
-##hh LOOP ALL lakes
+##hh LOOP ALL surveyed lakes
 ```{r ,include=FALSE}
 
 ##Household consumption across all lakes (may be able to delete)
@@ -1615,7 +1616,7 @@ age <- list(
 )
 
 lakes <- list(
-  "All" = unique(consumers_long$updated_lake_name)
+  "All_Surveyed" = c("Alondra park","Legg lake", "Peck Road","Magic Johnson Lakes" )
 )
 
 # Initialize an empty list to store summary tables
@@ -1949,8 +1950,9 @@ print(check_consistency)
 all(check_consistency$n == 0) #returns true if all groups are consisten
 
 
- ##histogram of age/gender of fishers who consume fish ##70 unique individuals
+ ##histogram of age/gender of fishers who consume fish ##39 unique individuals ##CHECK why missing 4
 fish_consumers <- consumers_long %>%
+  filter(updated_lake_name %in% c("Alondra park", "Legg lake", "Peck Road")) %>%
   group_by(rowID) %>%
   summarise(Age_numeric = first(Age_numeric), Observed_Gender = first(Observed_Gender)) %>%
   ungroup()
@@ -1964,7 +1966,7 @@ fisher_consumer_hist <- ggplot(fish_consumers, aes(x = Age_numeric, fill = Obser
     fill = "Gender"
   ) +
   scale_fill_manual(values = c("#ff8900","#15607a"))+
-  scale_y_continuous(limits=c(0,20))+
+  scale_y_continuous(limits=c(0,10), breaks = seq(0,10, by =2))+
   scale_x_continuous(limits=c(0,100),breaks = seq(0,100, by = 10))+
   theme(panel.background =element_blank(),
         axis.line = element_line(color = "black"),
@@ -1977,6 +1979,7 @@ length(unique(hh_consumers_species_long_adv$hh_consumerID))
 
 hh_age <- hh_consumers_species_long_adv %>%
   mutate(across(c(hh_gender_original),as.factor))%>%
+  filter(updated_lake_name %in% c("Alondra park", "Legg lake", "Peck Road")) %>%
   group_by(fisherID, household_member,hh_age,hh_gender_original)%>%
   summarize(sum(hh_daily_intake_per_fish_per_lake))%>%
   ungroup()
@@ -1998,7 +2001,7 @@ hh_hist <-ggplot(hh_age, aes(x = hh_age, fill = hh_gender_original)) +
     fill = "Gender"
   ) +
   scale_fill_manual(values = c("#ff8900","#15607a","gray"))+
-  scale_y_continuous(limits=c(0,20))+
+  scale_y_continuous(limits=c(0,10), breaks = seq(0,10, by =2))+
   scale_x_continuous(limits=c(0,100),breaks = seq(0,100, by = 10) ) +
   theme(panel.background =element_blank(),
         axis.line = element_line(color = "black"),
@@ -2381,20 +2384,107 @@ parts_consumed_sub <- parts_consumed %>%
          "Annual_Household_Income","Number_in_household", "Ethnicity", "daily_intake", "number_lakes", 
          "daily_intake_per_lake","Age_Category","column", "threshold_g_day","threshold_used",  
          "OEHHA_fish_names" ,"avg_threshold", "exceed_threshold_indiv_lake", "exceed_threshold_avg_lake"
- )
+ )%>%
+   mutate(
+    parts_eaten = case_when(
+      parts_eaten == "Fillet w/ skin consumed" ~ "Fillet w/ skin consumed",
+      parts_eaten == "Fillet w/o skin consumed" ~ "Fillet w/o skin consumed",
+      parts_eaten == "Fillet w/skin consumed" ~ "Fillet w/ skin consumed",
+      parts_eaten == "Unknown" ~ NA,
+      TRUE ~ parts_eaten
+  ))
 
-library(dplyr)
-library(tidyr)
+summary(as.factor(parts_consumed_sub$parts_eaten))
 
 ###Summary stats by lake
 # Define lake names
-lakes <- c("Alondra park", "Legg lake", "Peck Road")
+lakes <- list(
+  "All_Surveyed" = c("Alondra park", "Legg lake", "Peck Road", "Magic Johnson Lakes"),
+  "Alondra park" = "Alondra park",
+  "Legg lake" = "Legg lake",
+  "Peck Road" = "Peck Road",
+  "Magic Johnson Lakes" = "Magic Johnson Lakes"
+)
+
+###TEST
+# Define the list of lakes
+lakes <- list(
+  "All_Surveyed" = c("Alondra park", "Legg lake", "Peck Road", "Magic Johnson Lakes"),
+  "Alondra park" = "Alondra park",
+  "Legg lake" = "Legg lake",
+  "Peck Road" = "Peck Road",
+  "Magic Johnson Lakes" = "Magic Johnson Lakes"
+)
+
+# Initialize an empty list to store results
+results <- list()
+
+# Loop through each lake
+for (lake_name in names(lakes)) {
+  selected_lakes <- lakes[[lake_name]]  # Get the lake(s) for the current iteration
+  
+  # Filter data for the selected lake(s)
+  lake_parts_consumed <- parts_consumed_sub %>%
+    filter(updated_lake_name %in% selected_lakes)
+  
+  # Count unique rowIDs
+  unique_rowID_count <- length(unique(lake_parts_consumed$rowID))
+  
+  # Pivot data to wide format and calculate all_fillet_wo_skin
+  lake_parts_wide <- lake_parts_consumed %>%
+    pivot_wider(
+      id_cols = rowID, 
+      names_from = Catches_Info, 
+      values_from = c(parts_eaten)#,
+       #values_fn = first  # Take the first value for duplicates
+    ) %>%
+    rowwise() %>%
+    mutate(
+      all_fillet_wo_skin = all(
+        c_across(-rowID) %in% c("Fillet w/o skin consumed", NA)
+      )
+    ) %>%
+    ungroup()
+  
+  # Calculate summary statistics
+  summary_stats <- lake_parts_wide %>%
+    summarize(
+      total_false = sum(!all_fillet_wo_skin),                     # Count of FALSE values
+      percent_false = mean(!all_fillet_wo_skin, na.rm = TRUE) * 100  # Percentage of FALSE values
+    )
+  
+  # Combine results into a single row for this lake
+  result <- data.frame(
+    lake_name = lake_name,
+    unique_rowID_count = unique_rowID_count,
+    total_false = summary_stats$total_false,
+    percent_false = round(summary_stats$percent_false, 0)
+  )
+  
+  # Append result to the list
+  results[[lake_name]] <- result
+}
+
+# Combine all results into a single dataframe
+lake_results_df <- do.call(rbind, results)
+
+# View the results
+print(lake_results_df)
+
+
+
+
+###
+
+
+
+#lakes <- c("Alondra park", "Legg lake", "Peck Road")
 
 # Create a function to perform the analysis for a given lake
 analyze_lake <- function(lake_name, data) {
   # Filter data for the lake
   lake_parts_consumed <- data %>%
-    filter(updated_lake_name == lake_name)
+    filter(updated_lake_name %in% lake_name)
   
   # Count unique rowIDs
   unique_rowID_count <- length(unique(lake_parts_consumed$rowID))
@@ -2431,6 +2521,12 @@ analyze_lake <- function(lake_name, data) {
   
   return(result)
 }
+
+lake_results_df <- do.call(
+  rbind, 
+  lapply(lakes, function(lake) analyze_lake(lake, data = parts_consumed_sub))
+)
+
 
 # Apply the analysis to all lakes and combine the results into a single dataframe
 lake_results_df <- do.call(rbind, lapply(lakes, analyze_lake, data = parts_consumed_sub))

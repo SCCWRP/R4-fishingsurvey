@@ -411,6 +411,8 @@ anti_join_lakes <- anti_join(df_unique_lake_names, unique_lake_names_key, by=c("
 
 write.csv(anti_join_lakes, "anti_join_lakes.csv", row.names = FALSE)
 ```
+
+
 #Fisher characteristics
 ```{r, include= FALSE}
 
@@ -470,6 +472,167 @@ fisher_ethnicity <- fisher_ethnicity %>%
   
 # Write to CSV
 write.csv(fisher_ethnicity, "fisher_ethnicity.csv", row.names = FALSE)
+
+```
+#Catch rates
+```{r, include = FALSE}
+#This code chunk calculates the frequency different species are caught at each lake
+#Convert to long format
+caught_fish_long <- fisherdb %>%
+  mutate(rowID = 1:nrow(.)) %>%
+  # Step 1: Gather the relevant columns into long format
+  pivot_longer(
+    cols = matches("Past_catches:.*,_where$") & !matches("_times_eaten,_where$"),
+    names_to = "Catches_Info",
+    values_to = "Lakes"
+  ) %>%
+  #Step 2: Separate the lake names into individual rows #Alondra 223, leg 520, MJ 61, peck 162, NA 2824
+  #removing NA should be 4660-2824 = 1836
+  separate_rows(Lakes, sep = ",") %>%
+  mutate(Catches_Info = gsub("(Past_catches:_)|(,.*)", "", Catches_Info)) %>%
+  mutate(Catches_Info = gsub("_", " ", Catches_Info)) %>%
+  mutate(Lakes = trimws(Lakes))%>%
+  filter(!is.na(Lakes)) %>%
+  filter(Lakes != "NA") %>%
+  mutate(Catches_Info = str_trim(Catches_Info)) %>%  # Remove leading/trailing whitespace
+   # Step 3: Assign "reason" based on conditions
+ mutate(
+    reason = case_when(
+      Catches_Info == "Rainbow Trout" ~ `Past_catches:_Rainbow_Trout,_if_not_eating_why`,
+      Catches_Info == "Bluegill" ~ `Past_catches:_Bluegill,_if_not_eating_why`,
+      Catches_Info == "Bass" ~ `Past_catches:_Bass,if_not_eating_why`,
+      Catches_Info == "Catfish" ~ `Caught_Catfish,_if_not_eating_why`,
+      Catches_Info == "Common Carp" ~ `Past_catches:_Common_Carp,_if_not_eating_why`,
+      Catches_Info == "Crappie" ~ `Past_catches:_Crappie,_if_not_eating_why`,
+      Catches_Info == "other" ~ `Past_catches:_other,_if_not_eating_why`,
+      Catches_Info == "Tilapia" ~ `Past_catches:_Tilapia,_if_not_eating_why`,
+      TRUE ~ NA_character_  # Default to NA for other rows
+    ),
+    # Convert "NA" string to actual NA in the reason column
+    reason = na_if(reason, "NA")
+  )%>%
+mutate(
+   reason = case_when(
+      is.na(reason) & Catches_Info == "Rainbow Trout" ~ `Caught_Rainbow_Trout,_if_not_eating_why`,
+      is.na(reason) & Catches_Info == "Bluegill" ~ `Caught_Bluegill,_if_not_eating_why`,
+      is.na(reason) & Catches_Info == "Bass" ~ `Caught_Bass,_if_not_eating_why`,
+      is.na(reason) & Catches_Info == "Catfish" ~ `Caught_Catfish,_if_not_eating_why`,
+      is.na(reason) & Catches_Info == "Common Carp" ~ `Caught_Common_Carp,_if_not_eating_why`,
+      is.na(reason) & Catches_Info == "Crappie" ~ `Caught_Crappie,_if_not_eating_why`,
+      is.na(reason) & Catches_Info == "Tilapia" ~ `Caught_Tilapia,_if_not_eating_why`,
+      is.na(reason) & Catches_Info == "other" ~ `Caught_Other,_if_not_eating_why`,
+      TRUE ~ reason  # Keep existing reason value
+    ),
+   reason = na_if(reason, "NA")
+)%>%
+  mutate(Catches_Info = case_when(
+    Catches_Info == "other" & !is.na(`Past_catches:_Other,_list_species`) & 
+      `Past_catches:_Other,_list_species` != "NA" ~ `Past_catches:_Other,_list_species`,
+    TRUE ~ Catches_Info
+  ))%>%
+  mutate(Catches_Info = case_when(
+    Catches_Info == "Small mouth bass" ~ "Black bass",
+    Catches_Info == "Bass" ~ "Black bass",
+    TRUE ~ Catches_Info
+  ))%>%
+  select(rowID, Lakes, Catches_Info, reason)
+
+summary(as.factor(caught_fish_long$Catches_Info))
+
+Surveyed_lakes_caught_fish <-caught_fish_long %>%
+  filter(Lakes == "Alondra park"|
+         Lakes == "Magic Johnson Lakes"|
+         Lakes == "Legg lake"|
+         Lakes == "Peck Road")
+length(unique(Surveyed_lakes_caught_fish$rowID)) # 90 unique fishers
+summary(as.factor(Surveyed_lakes_caught_fish$Catches_Info))
+length_surveyed_lakes <- nrow(Surveyed_lakes_caught_fish)
+
+Alondra_caught_fish <- caught_fish_long %>%
+  filter(Lakes == "Alondra park") #should have 223 values
+length(unique(Alondra_caught_fish$rowID)) # 90 unique fishers
+summary(as.factor(Alondra_caught_fish$Catches_Info))
+length_Alondra <- nrow(Alondra_caught_fish)
+
+MJ_caught_fish <- caught_fish_long %>%
+  filter(Lakes == "Magic Johnson Lakes") #should have 61 values
+length(unique(MJ_caught_fish$rowID)) # 29 unique fishers
+summary(as.factor(MJ_caught_fish$Catches_Info))
+length_MJ <- nrow(MJ_caught_fish)
+
+Legg_caught_fish <- caught_fish_long %>%
+  filter(Lakes == "Legg lake") #should have 520 values
+length(unique(Legg_caught_fish$rowID)) # 219 unique fishers
+summary(as.factor(Legg_caught_fish$Catches_Info))
+length_Legg <- nrow(Legg_caught_fish)
+
+Peck_caught_fish <- caught_fish_long %>%
+  filter(Lakes == "Peck Road") #should have 162 values
+
+length(unique(Peck_caught_fish$rowID)) # 83 unique fishers
+summary(as.factor(Peck_caught_fish$Catches_Info))
+length_Peck <- nrow(Peck_caught_fish)
+ 
+
+lakes <- list(
+  "All" = c("Alondra park", "Legg lake", "Peck Road", "Magic Johnson Lakes"),
+  "Alondra park" = "Alondra park",
+  "Legg lake" = "Legg lake",
+  "Magic Johnson Lakes" = "Magic Johnson Lakes",
+  "Peck Road" = "Peck Road"
+)
+
+# Initialize an empty list to store summary tables
+summary_tables <- list()
+
+# Loop through each lake in the lakes list
+for (lake_name in names(lakes)) {
+  selected_lake <- lakes[[lake_name]]  # Get the lake(s) for the current iteration
+  
+  # Filter and summarize data for the selected lake(s)
+  lake_summary <- caught_fish_long %>%
+    filter(Lakes %in% selected_lake) %>%  # Filter rows for the current lake(s)
+    group_by(Catches_Info) %>%    # Group by Catches_Info and Lakes
+    summarise(count = n(), .groups = "drop")  # Count occurrences
+  
+  # Add a column for the lake name
+  lake_summary <- lake_summary %>%
+    mutate(lake_name = lake_name)
+  
+  # Append the result to the list
+  summary_tables[[lake_name]] <- lake_summary
+}
+
+# Combine all summary tables into a single dataframe
+summary_caught_fish <- bind_rows(summary_tables)
+
+##Calculate percent fish
+summary_caught_fish <- summary_caught_fish %>%
+  mutate(sum = case_when(
+    lake_name == "All" ~ length_surveyed_lakes,
+    lake_name == "Alondra park" ~ length_Alondra,
+    lake_name == "Legg lake" ~ length_Legg,
+    lake_name == "Magic Johnson Lakes" ~ length_MJ,
+    lake_name == "Peck Road" ~ length_Peck
+  ))%>%
+  mutate(percent = round(count/sum*100,0)
+  )
+  
+plot_summary_caught_fish <-summary_caught_fish %>%
+  filter (lake_name != "All")
+
+    ggplot(plot_summary_caught_fish, aes(x = lake_name, y = percent, fill = Catches_Info)) +
+  geom_bar(stat = "identity", color = "black") +  # Use "identity" to stack based on count
+  labs(
+    title = "Fish Caught by Lake and Species",
+    x = "Lake Name",
+    y = "Count of Fish Caught",
+    fill = "Fish Species"
+  ) +
+  theme_minimal() +  # Use a minimal theme for a clean look
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1)  # Rotate x-axis labels for readability
+  )
 
 ```
 

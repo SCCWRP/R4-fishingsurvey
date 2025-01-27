@@ -2367,10 +2367,10 @@ lake_results_df <- do.call(rbind, lapply(lakes, analyze_lake, data = parts_consu
 print(lake_results_df)
 
 ```
-##Cooking methods used **Needs QA**
+##Cooking methods used
 ```{r ,include=FALSE}
 
-##Use consumers dataframe to look at how fishers are preparing fish
+##Uses consumers dataframe to look at how fishers are preparing fish
 cooking_methods <- consumers_long
 # Perform the transformation
 cooking_methods <- cooking_methods %>%
@@ -2402,9 +2402,9 @@ cooking_methods <- cooking_methods %>%
 missing_matches <- cooking_methods %>%
   filter(Catches_Info %in% c("Rainbow trout", "Catfish", "Bluegill", "Common Carp", "Bass", "Crappie", "Tilapia", "Other") &
            (is.na(times_eaten) | is.na(cooking_method)))
-
 # Print mismatched rows
 print(paste("Number of rows with missing times_eaten or parts_eaten:", nrow(missing_matches)))
+rm(missing_matches)
 
 summary(as.factor(cooking_methods$Catches_Info))
 
@@ -2436,9 +2436,7 @@ sunfish_check <- cooking_methods %>%
   filter (Catches_Info == "Sunfish species") %>%
   select("rowID", "Catches_Info", "Past_catches:_Bluegill,_times_eaten_numeric","times_eaten",
         "Past_catches:_Bluegill,_cooking_method", "cooking_method")
-
-#write.csv(cooking_methods, "cooking_methods.csv", row.names = FALSE)
-###
+rm(rt_check, bass_check,catfish_check,carp_check,crappie_check,striped_bass_check,sunfish_check)
 
 cooking_methods_sub <- cooking_methods %>%
   select("rowID","Age_numeric", "Observed_Gender", "Catches_Info", 
@@ -2448,14 +2446,7 @@ cooking_methods_sub <- cooking_methods %>%
          "OEHHA_fish_names" ,"avg_threshold", "exceed_threshold_indiv_lake", "exceed_threshold_avg_lake"
  )
 
-   
 #Separated out comma separated cooking methods and converting into a long format
-
-summary(as.factor(cooking_methods_sub$updated_lake_name))
-Alondra_cooking_methods <- cooking_methods_sub %>%
-  filter(updated_lake_name == "Alondra park")
-  Alondra_total_people <- length(unique(Alondra_cooking_methods$rowID))
-
 # Convert comma-separated values in the "cooking_method" column to long format
 cooking_methods_long <- cooking_methods_sub %>%
   separate_rows(cooking_method, sep = ",") %>%
@@ -2466,13 +2457,11 @@ cooking_methods_long <- cooking_methods_sub %>%
     cooking_method == "Pan Fried" ~ "Pan fried",
     TRUE ~ cooking_method
   ))
-
 summary(as.factor(cooking_methods_long$cooking_method))
 
 write.csv(cooking_methods_long, "cooking_methods_long.csv", row.names = FALSE)
 
 lakes <- c("Alondra park", "Legg lake", "Peck Road")
-#lakes <- c("Legg lake")
 # Initialize an empty list to store results
 cooking_method_counts_list <- list()
 total_people_list <- list()  # To store total people for each lake
@@ -2519,59 +2508,11 @@ write.csv(cooking_method_counts_combined, "cooking_methods.csv", row.names = FAL
 cooking_methods_long_x_lake <- cooking_methods_long %>%
     filter(updated_lake_name == "Alondra park") %>%  # Filter for the current lake
     distinct(rowID, cooking_method)  # Ensure each cooking method is counted once per rowID
-
-###TEST
-# Initialize lists to store results
-cooking_method_counts_list <- list()
-total_people_list <- list()
-
-# For loop to process each lake individually
-for (lake_name in lakes) {
-  # Filter and de-duplicate data for the current lake
-  cooking_methods_long_x_lake <- cooking_methods_long %>%
-    filter(updated_lake_name == lake_name) %>%  # Filter for the current lake
-    distinct(rowID, cooking_method)  # Ensure each cooking method is counted once per rowID
-  
-  # Count occurrences of each cooking method
-  cooking_method_counts <- cooking_methods_long_x_lake %>%
-    group_by(cooking_method) %>%
-    summarise(count = n(), .groups = "drop")  # Count occurrences of each cooking method
-  
-  # Calculate total number of unique people (rowID) at the lake
-  total_people <- length(unique(cooking_methods_long_x_lake$rowID))
-  total_people_list[[lake_name]] <- total_people  # Store total people for the lake
-  
-  # Add lake information and calculate percentages
-  cooking_method_counts <- cooking_method_counts %>%
-    mutate(
-      lake = lake_name,
-      percent = round((count / total_people) * 100, 0)  # Calculate percentage with no decimal places
-    )
-  
-  # Append the results for the current lake to the list
-  cooking_method_counts_list[[lake_name]] <- cooking_method_counts
-}
-
-# Combine results from all lakes into a single dataframe
-cooking_method_counts_combined <- bind_rows(cooking_method_counts_list)
-
-# Combine with total people if needed
-total_people_df <- data.frame(
-  lake = names(total_people_list),
-  total_people = unlist(total_people_list)
-)
-
-final_table <- cooking_method_counts_combined %>%
-  left_join(total_people_df, by = "lake")
-
-# View the final table
-print(final_table)
-
-write.csv(final_table, "cooking_methods.csv", row.names = FALSE)
+    length(unique(cooking_methods_long_x_lake$rowID))
 
 ```
 
-##Fish consumption by income **Needs QA**
+##Fish consumption by income regression analysis
 
 ```{r ,include=FALSE}
 ##COME BACK TO QA
@@ -2584,8 +2525,7 @@ Surveyed_lakes_reported_income <- consumers_long %>%
   summary(as.factor(Surveyed_lakes_reported_income$Annual_Household_Income))
 
 ##This chunk of code is for regression analysis (finding middle of income range).
-
-consumers_x_income <- consumers_long %>%
+consumers_x_income <- consumers_long%>%
    separate(Annual_Household_Income, into = c("low_end_income", "high_end_income"), sep = "-", fill = "right", remove=FALSE) %>%
  filter(!low_end_income %in% c("No answer","Unknown")) %>%
   filter(!high_end_income %in% c("No answer","Unknown"))%>%
@@ -2620,8 +2560,9 @@ unique_rowID_count <- consumers_x_income %>%
 #remove duplicate row IDs
 consumers_x_income <- consumers_x_income %>%
   distinct(rowID, .keep_all = TRUE)%>%
-  filter(Annual_Household_Income != "Prefer not to say")%>%
+  filter(Annual_Household_Income != "Prefer not to say")
 
+#write.csv(consumers_x_income, "consumer_x_income.csv", row.names = FALSE)
 
 ggplot(consumers_x_income, aes(x=(avg_income), y=log(total_daily_intake)))+
   geom_jitter()+
@@ -2649,7 +2590,6 @@ income_x_freq <- consumers_x_income %>%
     `Past_catches:_other,_times_eaten_numeric`
   ), na.rm = TRUE))
 
-
 ggplot(income_x_freq, aes(x=(avg_income), y=(freq_consump)))+
   geom_jitter()+
   geom_smooth(method= "lm", color="red")+
@@ -2664,9 +2604,9 @@ summary(model)
 
 
 ```
-
+##Fish consumption by income 
 ```{r}
-
+#Code which outputs summary statistics of fish consumption by income
 ### leaving income ranges as is:
 summary(as.factor(consumers_long$Annual_Household_Income))
 consumer_x_income <- consumers_long %>%
@@ -2681,8 +2621,6 @@ consumer_x_income <- consumers_long %>%
   mutate(Annual_Household_Income = as.factor(Annual_Household_Income))
 
 ###Loop for number of people per income per lake
-
-
 # Define lakes list with "All" category
 lakes <- list(
   "All" = c("Alondra park", "Legg lake", "Peck Road"),
@@ -2690,7 +2628,6 @@ lakes <- list(
   "Legg lake" = "Legg lake",
   "Peck Road" = "Peck Road"
 )
-
 # Initialize empty lists to store results
 income_counts_list <- list()
 total_people_list <- list()
@@ -2769,68 +2706,10 @@ print(combined_income_counts)
 
 
 ##Rearrange and simplify output 
-income_counts_combined <- income_counts_combined %>%
-  select(lake, Annual_Household_Income,count_consumers,percent_consumers,min,max,mean,median,per_exceed, count_exceed)
-
+income_counts_combined <- combined_income_counts %>%
+  select(lake, Annual_Household_Income,count_consumers,percent_consumers,min,max,mean,median,per_exceed, exceed_count)
 
 write.csv(income_counts_combined, file="income_counts.csv", row.names = FALSE)
-
-# #Plot consumption rate by income
-# 
-dailyintake_x_income <- dailyintake_x_income %>%
-  mutate(Annual_Household_Income = factor(Annual_Household_Income, levels = c("0-20,000",
-                                                  "20,000-50,000",
-                                                  "50,000-75,000",
-                                                  "75,000-100,000",
-                                                  "100,000-150,000",
-                                                  "150,000-200,000",
-                                                  "200,000+",
-                                                  "Not reported / unknown")))
-
-plot_dailyintake_income <- ggplot(dailyintake_x_income, aes(x=Annual_Household_Income, y = (total_daily_intake), fill = Annual_Household_Income ))+
-   geom_violin(width=2.1, size=0.2) +
-    scale_fill_viridis(discrete=TRUE) +
-    scale_color_viridis(discrete=TRUE) +
-    scale_y_break(c(500, 2100))+
-    theme_ipsum() +
-    theme(
-      legend.position="none"
-    )
-
-plot_dailyintake_income
-
-
-##Plot (overlaying bars)
-
-# income_counts <- income_counts %>%
-#    mutate(Annual_Household_Income = factor(Annual_Household_Income, levels = c("0-20,000",
-#                                                   "20,000-50,000",
-#                                                   "50,000-75,000",
-#                                                   "75,000-100,000",
-#                                                   "100,000-150,000",
-#                                                   "150,000-200,000",
-#                                                   "200,000+")))
-perc_all_income<-ggplot(income_counts, aes(x = Annual_Household_Income)) +
-  #geom_bar(aes(y = percent_total , fill= "All Fishers"), stat = "identity") +  # Plot total counts
-  geom_bar(aes(y = percent_consumers, fill = "Consumers"), stat = "identity") + # Overlay consumer counts
-  geom_bar(aes(y = percent_exceed_offishers, fill = "Exceed Advisory"), stat = "identity") +  # Overlay consumer count
-  scale_fill_manual(values = c("All Fishers" = "gray", "Consumers" = "#2786A0","Exceed Advisory" = "#D07C42" )) +  # Customize fill colors
-  labs(y = "Percent of fishers", x="Annual household income", title = "") +  # Customize labels
-  theme_minimal() +
-  theme(legend.position = "top",
-        panel.grid.major = element_blank(),
-        panel.grid.minor = element_blank(),
-        axis.text.x = element_text(angle = 90, hjust = 0.5)) # Clean theme
-
-perc_all_income
-
-plot_height <- 1500
-plot_width <- 1200
-
-ggsave(
-  filename = "consumption_x_income.svg",
-  plot = perc_all_income, width = plot_width, height = plot_height, units = "px", dpi = 300
-)
 
 ```
 

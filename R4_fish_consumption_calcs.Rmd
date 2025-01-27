@@ -787,9 +787,6 @@ summary(as.factor(consumers_long$daily_intake))
 consumers_long <- consumers_long %>% 
   filter(daily_intake>0)
 
-
-##During data clean up - check NAs here. Explore why.
-##Need to check code to make sure things are filtering & calculating as expected
 write.csv(consumers_long, "consumers_long.csv", , row.names = FALSE)
 
 
@@ -1096,9 +1093,6 @@ write.csv(all_lakes_export, "All_lakes_summary.csv", row.names = FALSE)
 ##Calculate consumption rate (household members)
 ```{r ,include=FALSE}
 ##Subset to only household consumers (<4 weeks)
-##CHECK that each row = only one person
-
-#check class of columns before running functions
 
 columns_to_check <- c(
   "Servings_eaten_(Person_1)_numeric", "Times_eaten_last_4_weeks__(Person_1)_numeric",
@@ -1285,8 +1279,7 @@ changed_rows <- hh_consumers_species_long %>%
   select(hh_consumerID, hh_species_consumed,hh_times_eaten, number_fish_sp, hh_sp_consumed_times, changed)
 
 #write.csv(hh_consumers_species_long, "hh_consumers_species_long.csv", row.names = FALSE)
-##datacheck
-check <- hh_consumers_species_long %>% filter(hh_consumerID ==45)
+
 
 ###Calculate daily intake by fish species
 hh_consumers_species_long <- hh_consumers_species_long %>%
@@ -1757,10 +1750,13 @@ write.csv(hh_lakes_summary_table_export, "hh_consumption_summary.csv", row.names
 
 ```{r ,include=FALSE}
 
+##This code chunk creates histograms of fishers & individual consumers
+
 summary(fisherdb$Age_numeric)
 summary(as.factor(fisherdb$Observed_Gender))
 age_check <- fisherdb %>% select(Age, Age_numeric)
-
+rm(age_check)
+#Histogram of all fishers regardless of whether they consume fish
 fisher_hist <-ggplot(fisherdb, aes(x = Age_numeric, fill = Observed_Gender)) +
   geom_histogram(binwidth = 10, color = "#000000") +
   labs(
@@ -1776,6 +1772,7 @@ fisher_hist <-ggplot(fisherdb, aes(x = Age_numeric, fill = Observed_Gender)) +
         legend.position = "top",)
 
 fisher_hist
+
 Legg <- fisherdb %>% filter(Location == "Legg")
 Alondra <- fisherdb %>% filter(Location == "Alondra")
 Peck <- fisherdb %>% filter(Location == "Peck Road")
@@ -1800,16 +1797,15 @@ check_consistency <- consumers_long %>%
 
 # View rows with inconsistencies
 print(check_consistency)
-all(check_consistency$n == 0) #returns true if all groups are consisten
+all(check_consistency$n == 0) #returns true if all groups are consistent
 
-
- ##histogram of age/gender of fishers who consume fish ##39 unique individuals ##CHECK why missing 4
+ ##histogram of age/gender of fishers who consume fish ##39 unique individuals
 fish_consumers <- consumers_long %>%
   filter(updated_lake_name %in% c("Alondra park", "Legg lake", "Peck Road")) %>%
   group_by(rowID) %>%
   summarise(Age_numeric = first(Age_numeric), Observed_Gender = first(Observed_Gender)) %>%
   ungroup()
-
+##Histogram of all fishers who consume fish
 fisher_consumer_hist <- ggplot(fish_consumers, aes(x = Age_numeric, fill = Observed_Gender)) +
   geom_histogram(binwidth = 10, boundary = 0, color = "black") +
   labs(
@@ -1842,6 +1838,7 @@ duplicate_check <- hh_age %>%
   group_by(fisherID, household_member) %>%
   filter(n() > 1) %>%  # Filter groups with more than 1 row
   ungroup()
+rm(duplicate_check)
 
 levels(hh_age$hh_gender_original)
 
@@ -1882,7 +1879,7 @@ ggsave(
 )
 
 ```
-#Why not eating fish **Needs QA**
+#Why not eating fish
 ```{r ,include=FALSE}
 ##This is an analysis of the reasons fishers gave for not wanting to eat fish at the lakes surveyed
 # Subset all columns that end with "_why"
@@ -1907,9 +1904,9 @@ reasons_not_eating <- fisherdb %>%
   filter(Combined_Responses != "") %>%
   select(fisherID, Combined_Responses) %>%
   separate_rows(Combined_Responses, sep = ",\\s*") %>%
-  group_by(fisherID) %>%
-  mutate(Response_Column = paste0("Response_", row_number())) %>%
-  pivot_wider(names_from = Response_Column, values_from = Combined_Responses) %>%
+  group_by(fisherID)%>%
+  mutate(Response_Column = paste0("Response_", row_number()))  %>%
+  pivot_wider(names_from = Response_Column, values_from = Combined_Responses)%>%
   ungroup() %>%
   mutate(across(everything(), as.character)) %>% # Ensure compatibility with case_when
   mutate(
@@ -1960,31 +1957,7 @@ no_reason <- fisherdb %>%
     )
     ))
 
-no_reason <- no_reason %>%
-  #filter(if_all(ends_with("_why"), is.na)) %>%
-  mutate(Combined_Responses = apply(
-    select(., ends_with("_why")), 
-    1, 
-    function(row) {
-      # Combine responses, remove NAs and "NA"
-      combined = paste(row[!is.na(row) & row != "NA"], collapse = ", ")
-      # Remove duplicates by splitting, deduplicating, and trimming
-      unique_responses = unique(str_trim(str_split(combined, ",\\s*")[[1]]))
-      paste(unique_responses, collapse = ", ")
-    }
-  ))%>%
-  filter(is.na(Combined_Responses) | Combined_Responses == "" )
-
-response_summary <- no_reason %>%
-  summarise(
-    with_response = sum(!is.na(Combined_Responses) & Combined_Responses != ""),
-    blank_response = sum(is.na(Combined_Responses) | Combined_Responses == "")
-  )
-
-write.csv(no_reason, "no_reason.csv", row.names = FALSE)
-
 #Convert to long format
-
 reasons_not_eating_long <- reasons_not_eating %>%
   pivot_longer(
     cols = Response_1:Response_6,

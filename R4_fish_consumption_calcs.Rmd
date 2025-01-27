@@ -154,6 +154,7 @@ rm(age_check)
 
 ```
 
+
 #Identify unique lake names used in database
 ```{r ,include=FALSE}
 #using unlist and strsplit1

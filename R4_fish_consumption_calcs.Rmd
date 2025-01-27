@@ -2713,9 +2713,8 @@ write.csv(income_counts_combined, file="income_counts.csv", row.names = FALSE)
 
 ```
 
-##Fish consumption by ethnicity **Needs QA**
+##Fish consumption by ethnicity
 ```{r ,include=FALSE}
-###TESTING
 
 summary(as.factor(consumers_long$Ethnicity))
 consumer_x_ethnicity <- consumers_long %>%
@@ -2730,9 +2729,6 @@ consumer_x_ethnicity <- consumers_long %>%
   mutate(Ethnicity = as.factor(Ethnicity))
 
 summary(consumer_x_ethnicity$Ethnicity)
-
-
-###TEST
 
 # Define lakes list with "All" category
 lakes <- list(
@@ -2819,120 +2815,7 @@ ethnicity_counts_combined <- ethnicity_counts_combined %>%
 # View the results
 print(ethnicity_counts_combined)
 
-
-
-
-
-
-#####
-
-
-
-
-###Come back to QA
-consumer_x_ethnicity<- fisherdb_consumers# %>% 
-  mutate(Ethnicity = as.factor(Ethnicity))%>%
-  mutate(Ethnicity = case_when(
-    Ethnicity == "NA" ~ "Prefer not to say / Unknown",
-    Ethnicity == "No answer" ~ "Prefer not to say / Unknown",
-    Ethnicity == "No Answer" ~ "Prefer not to say / Unknown",
-    Ethnicity == "Other/Unknown" ~ "Prefer not to say / Unknown",
-    Ethnicity == "Prefer not to say" ~ "Prefer not to say / Unknown",
-    Ethnicity == "Unknown" ~ "Prefer not to say / Unknown",
-    Ethnicity == "Hispanic or Latino, Asian or Pacific Islander" ~ "Other",
-    Ethnicity == "Hispanic or Latino, White" ~ "Other",
-    Ethnicity == "white" ~ "White",
-    Ethnicity == "Hispanic or LAtino" ~ "Hispanic or Latino",
-    TRUE ~ Ethnicity  # Keep all other values as they are
-  ))
-
-summary(as.factor(fisherdb_ethnicity$Ethnicity))
-
-ethnicity_counts <- fisherdb_ethnicity %>%
-  group_by(Ethnicity) %>%
-  summarise(fisher_count = n()) %>%
-  ungroup()
-  
-
-consumer_ethnicity_counts <- fisherdb_ethnicity %>%
-  filter(consumer ==TRUE)%>%
-  group_by(Ethnicity)%>%
-  summarise(consumer_count = n()) %>%
-  ungroup()
-
-exceed_thresh_ethnicity_counts<- consumers_long %>%
-   mutate(Ethnicity = case_when(
-    Ethnicity == "NA" ~ "Prefer not to say / Unknown",
-    Ethnicity == "No answer" ~ "Prefer not to say / Unknown",
-    Ethnicity == "No Answer" ~ "Prefer not to say / Unknown",
-    Ethnicity == "Other/Unknown" ~ "Prefer not to say / Unknown",
-    Ethnicity == "Prefer not to say" ~ "Prefer not to say / Unknown",
-    Ethnicity == "Unknown" ~ "Prefer not to say / Unknown",
-    Ethnicity == "Hispanic or Latino, Asian or Pacific Islander" ~ "Other",
-    Ethnicity == "Hispanic or Latino, White" ~ "Other",
-    Ethnicity == "white" ~ "White",
-    Ethnicity == "Hispanic or LAtino" ~ "Hispanic or Latino",
-    TRUE ~ Ethnicity  # Keep all other values as they are
-  ))%>%
-  group_by(rowID,Ethnicity)%>%
-  summarise(any_true = any(exceed_threshold_avg_lake == TRUE, na.rm = TRUE))%>%
-  ungroup()%>%
-  group_by(Ethnicity)%>%
-  summarise(exceed_thresh_count_eth = sum(any_true == TRUE, na.rm = TRUE)) %>%
-  ungroup()
-
-##START here
-dailyintake_x_ethnicity <- consumers_long %>%
-    group_by(rowID, Ethnicity) %>%
-    filter(daily_intake > 0) %>%
-    summarise(total_daily_intake = sum(daily_intake, na.rm = TRUE)) %>%
-    mutate(Ethnicity = case_when(
-    Ethnicity == "NA" ~ "Prefer not to say / Unknown",
-    Ethnicity == "No answer" ~ "Prefer not to say / Unknown",
-    Ethnicity == "No Answer" ~ "Prefer not to say / Unknown",
-    Ethnicity == "Other/Unknown" ~ "Prefer not to say / Unknown",
-    Ethnicity == "Prefer not to say" ~ "Prefer not to say / Unknown",
-    Ethnicity == "Unknown" ~ "Prefer not to say / Unknown",
-    Ethnicity == "Hispanic or Latino, Asian or Pacific Islander" ~ "Other",
-    Ethnicity == "Hispanic or Latino, White" ~ "Other",
-    Ethnicity == "white" ~ "White",
-    Ethnicity == "Hispanic or LAtino" ~ "Hispanic or Latino",
-    TRUE ~ Ethnicity  # Keep all other values as they are
-  ))%>%
-  ungroup()
-
-consumption_rate_x_ethnicity <- dailyintake_x_ethnicity  %>%
-  group_by(Ethnicity)%>%
-    summarise(
-      n = n(),
-      min = round(min(total_daily_intake, na.rm = TRUE)),
-      max = round(max(total_daily_intake, na.rm = TRUE)),
-      mean = round(mean(total_daily_intake, na.rm = TRUE)),
-      median = round(median(total_daily_intake, na.rm = TRUE))
-    )%>%
-  ungroup()
-
-
-ethnicity_counts <- left_join(ethnicity_counts, consumer_ethnicity_counts, by = "Ethnicity")
-ethnicity_counts <- left_join(ethnicity_counts, exceed_thresh_ethnicity_counts, by = "Ethnicity")
-ethnicity_counts <- left_join(ethnicity_counts, consumption_rate_x_ethnicity, by = "Ethnicity")
-
-sum_fishers <- sum(ethnicity_counts$fisher_count)
-sum_consumers <- sum(ethnicity_counts$consumer_count, na.rm = TRUE)
-sum_exceed <- sum(ethnicity_counts$exceed_thresh_count_eth, na.rm = TRUE)
-
-ethnicity_counts <- ethnicity_counts %>%
-  ungroup()%>%
-  mutate(
-  percent_of_fishers = round((fisher_count / sum_fishers) * 100),
-    percent_consumers = round((consumer_count / sum_consumers) * 100),
-    percent_exceed_ofconsumers = round((exceed_thresh_count_eth / sum_exceed) * 100),
-    percent_total = 100
-)
-ethnicity_counts_export <- ethnicity_counts %>%
-  select(Ethnicity,percent_of_fishers,fisher_count, percent_consumers, consumer_count, percent_exceed_ofconsumers, exceed_thresh_count_eth, n, min, max, mean, median)
-
-write.csv(ethnicity_counts_export, file="ethnicity_counts.csv", row.names = FALSE)
+write.csv(ethnicity_counts_combined, file="ethnicity_counts.csv", row.names = FALSE)
 
 ```
 

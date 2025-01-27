@@ -30,7 +30,7 @@ library(hrbrthemes)
 ## Import data
 ```{r ,include=FALSE}
 
-path <- c("//pacific/Toxicology/tox/Risk Assessment/Region4_Urban lakes fishers survey/Survey data/Data entry/Working_FisherSurveryDatabase.xlsm")
+path <- c("//pacific/Toxicology/tox/Risk Assessment/Region4_Urban lakes fishers survey/Survey data/Fisher_Survey_Database_2024.xlsm")
 
 excel_sheets(path)
 
@@ -189,13 +189,13 @@ unique_lake_names_key <- unique_lake_names_key %>%
     original_name = trimws(original_name)  # Apply trimws after re-encoding
   )
 anti_join_lakes <- anti_join(df_unique_lake_names, unique_lake_names_key, by=c("unique_lake_names" = "original_name"))
-
-write.csv(anti_join_lakes, "anti_join_lakes.csv", row.names = FALSE)
+#write.csv(anti_join_lakes, "anti_join_lakes.csv", row.names = FALSE)
 ```
 
 
 #Fisher characteristics
 ```{r, include= FALSE}
+##Subsets columns related to fisher demographics. Looks at gender and race/ethnic distribution of all fishers, not solely consumers.
 
 fisher_charac <- fisherdb %>% 
   select(Location,Date,Observed_Gender,`Fishing_here:_Years`,`Fishing_here:_Months`, `Fishing_here:_Days`, Times_here_past_4_weeks,Age, Ethnicity,Employment,Annual_Household_Income, `Optional:_US_Native`)
@@ -216,6 +216,7 @@ total_gender <- fisher_charac %>%
   mutate(Location = "All")
 
 fisher_gender <- bind_rows(fisher_gender, total_gender)
+rm(total_gender)
 
 fisher_gender <- fisher_gender %>% 
   mutate(total_fishers = Female + Male + `Not recorded`,
@@ -237,6 +238,7 @@ total_ethnicity <- fisher_charac %>%
   mutate(Location = "All")
 
 fisher_ethnicity <- bind_rows(lake_ethnicity, total_ethnicity)
+rm(total_ethnicity)
 
 fisher_ethnicity <- fisher_ethnicity %>% 
   mutate(Multiracial = `Multi: Asian or Pacific Islander, Hispanic or Latino` + `Multi: Asian or Pacific Islander, White`+`Multi: Hispanic or Latino, White`)%>%
@@ -258,7 +260,7 @@ write.csv(fisher_ethnicity, "fisher_ethnicity.csv", row.names = FALSE)
 #Catch rates
 ```{r, include = FALSE}
 #This code chunk calculates the frequency different species are caught at each lake
-#Convert to long format
+#Step 1: Convert to long format
 caught_fish_long <- fisherdb %>%
   mutate(rowID = 1:nrow(.)) %>%
   # Step 1: Gather the relevant columns into long format
@@ -321,11 +323,11 @@ mutate(
 summary(as.factor(caught_fish_long$Catches_Info))
 
 Surveyed_lakes_caught_fish <-caught_fish_long %>%
-  filter(Lakes == "Alondra park"|
-         Lakes == "Magic Johnson Lakes"|
-         Lakes == "Legg lake"|
-         Lakes == "Peck Road")
-length(unique(Surveyed_lakes_caught_fish$rowID)) # 90 unique fishers
+  filter(Lakes == "Alondra park"| #223
+         Lakes == "Magic Johnson Lakes"| #61
+         Lakes == "Legg lake"| #520
+         Lakes == "Peck Road") #162
+length(unique(Surveyed_lakes_caught_fish$rowID)) # 352 unique fishers
 summary(as.factor(Surveyed_lakes_caught_fish$Catches_Info))
 length_surveyed_lakes <- nrow(Surveyed_lakes_caught_fish)
 
@@ -349,7 +351,6 @@ length_Legg <- nrow(Legg_caught_fish)
 
 Peck_caught_fish <- caught_fish_long %>%
   filter(Lakes == "Peck Road") #should have 162 values
-
 length(unique(Peck_caught_fish$rowID)) # 83 unique fishers
 summary(as.factor(Peck_caught_fish$Catches_Info))
 length_Peck <- nrow(Peck_caught_fish)
@@ -363,6 +364,7 @@ lakes <- list(
   "Peck Road" = "Peck Road"
 )
 
+#Loop to summarize what fishers are catching at each lake
 # Initialize an empty list to store summary tables
 summary_tables <- list()
 
@@ -398,27 +400,12 @@ summary_caught_fish <- summary_caught_fish %>%
   ))%>%
   mutate(percent = round(count/sum*100,0)
   )
-  
-plot_summary_caught_fish <-summary_caught_fish %>%
-  filter (lake_name != "All")
-
-    ggplot(plot_summary_caught_fish, aes(x = lake_name, y = percent, fill = Catches_Info)) +
-  geom_bar(stat = "identity", color = "black") +  # Use "identity" to stack based on count
-  labs(
-    title = "Fish Caught by Lake and Species",
-    x = "Lake Name",
-    y = "Count of Fish Caught",
-    fill = "Fish Species"
-  ) +
-  theme_minimal() +  # Use a minimal theme for a clean look
-  theme(
-    axis.text.x = element_text(angle = 45, hjust = 1)  # Rotate x-axis labels for readability
-  )
 
 ```
 
 #Calculate consumption rate (Fishers)
 ```{r ,include=FALSE}
+##Code to calculate the fish consumepiton rate of fishers
 ##Subset to only fish consumers (<4 weeks)
 consumers <- fisherdb %>% filter(
                   `Past_catches:_Rainbow_Trout,_times_eaten_numeric` >0 |
@@ -431,7 +418,7 @@ consumers <- fisherdb %>% filter(
                   `Past_catches:_other,_times_eaten_numeric`>0
 )
 
-##verify consumer subset
+##verify consumer subset ## This is solely to check the code.
 RT_consumers <- fisherdb %>% filter(`Past_catches:_Rainbow_Trout,_times_eaten_numeric` >0)
 nrow(RT_consumers)
 cat_consumers <- fisherdb %>% filter(`Past_catches:_Catfish,_times_eaten_numeric`>0)
@@ -448,7 +435,6 @@ Tilapia_consumers <- fisherdb %>% filter(`Past_catches:_Tilapia,_times_eaten_num
 nrow(Tilapia_consumers)
 Other_consumers <- fisherdb %>% filter(`Past_catches:_other,_times_eaten_numeric`>0)
 nrow(Other_consumers)
-
 
 ###Calculate consumption
 
@@ -472,19 +458,16 @@ consumers <- consumers %>%
       ((`Past_catches:_other,_times_eaten_numeric`*`Past_catches:_other,_servings_eaten_numeric` * 227) / 28), 0)
   )
 
-
-
 ###Remove extra data from environment
-
-age_check <- NULL
-RT_consumers <- NULL
-cat_consumers <- NULL
-BG_consumers <- NULL
-CC_consumers <- NULL
-Bass_consumers <- NULL
-Crappie_consumers <- NULL
-Tilapia_consumers <- NULL
-Other_consumers <- NULL
+rm(age_check)
+rm(RT_consumers)
+rm(cat_consumers)
+rm(BG_consumers)
+rm(CC_consumers)
+rm(Bass_consumers)
+rm(Crappie_consumers)
+rm(Tilapia_consumers)
+rm(Other_consumers)
 
 
 ```
@@ -511,7 +494,7 @@ advisories_long <- advisories %>%
     cols = threshold_g_day_child:threshold_g_day_men18,
     names_to = "column",
     values_to = "threshold_g_day"
-  ) %>%
+  )%>%
   mutate(Gender = case_when(
       grepl("child", column) ~ "Child",
       grepl("women", column) ~ "Female",
@@ -541,30 +524,12 @@ expanded_rows <- child_rows %>%
 advisories_long_updated <- advisories_long %>%
   bind_rows(expanded_rows)
 
-# Check: Count original "Child" rows and verify new rows added
-child_count <- nrow(child_rows)
-added_rows_count <- nrow(expanded_rows)
-print(paste("Number of original 'Child' rows replaced:", child_count))
-print(paste("Number of new rows added:", added_rows_count))
-print(paste("Expected added rows (2x original 'Child' rows):", child_count * 3))
-
-# Verify the resulting Gender column
-print("Unique Gender values after update:")
-print(unique(advisories_long_updated$Gender))
-
 ##Rename and remove extra data from enviornment
 
 advisories_long <- advisories_long_updated
-advisories_long_updated <- NULL
-child_rows <- NULL
-expanded_rows <- NULL
-child_count <- NULL
-added_rows_count <- NULL
-
-#Check fish names match
-# summary_1 <- as.data.frame(summary(advisories_long$OEHHA_fish_names))
-# summary_2 <- as.data.frame(summary(advisories_long$join_fish_names))
-
+rm(advisories_long_updated)
+rm(child_rows)
+rm(expanded_rows)
 
 consumers_long <- consumers %>%
   mutate(rowID = 1:nrow(.)) %>%
@@ -632,9 +597,7 @@ consumers_long <- consumers %>%
     )
   )
   
-
-
-  ###Calculate consumption rate of each fish at each lake per person
+###Calculate consumption rate of each fish at each lake per person
 consumers_long <- consumers_long %>% 
   mutate(daily_intake = case_when(
     Catches_Info == "Rainbow Trout" ~ `Past_catches:_Rainbow_Trout,_times_eaten_numeric` * `Past_catches:_Rainbow_Trout,_servings_eaten_numeric`,
@@ -665,34 +628,8 @@ consumers_long <- consumers_long %>%
     TRUE ~ Catches_Info
   ))
 
-##NAs 451, 0 = 30 
-
-
 updated_rows <- consumers_long %>%
   filter(Catches_Info != "Other" & !is.na(`Past_catches:_Other,_list_species`) & `Past_catches:_Other,_list_species` != "NA" )
-
-#write.csv(consumers_long, "consumers_long.csv", row.names = FALSE)
-# count_unique_rowID <- consumers_long %>%
-#   filter(number_lakes > 1) %>%
-#   distinct(rowID) %>%
-#   count()
-#count_unique_rowID
-
-###extract lake names to update key
-lake_names <- consumers_long$Lakes
-lake_names <-trimws(lake_names)
-unique_lake_names <- unique(lake_names)
-write.csv(unique_lake_names,"unique_lake_names.csv", row.names = FALSE)
-
-##Names and counties were added to "unique_lake_names.csv" -- now import this dataset
-
-unique_lake_names_key <- read.csv("unique_lake_names_key.csv")
-
-##Join lakes & key to identify if any missed
-
-df_unique_lake_names <- as.data.frame(unique_lake_names)
-anti_join_lakes <- anti_join(df_unique_lake_names, unique_lake_names_key, by=c("unique_lake_names" = "original_name"))
-
 
 ##Update lake names with join
 consumers_long <- consumers_long %>%
@@ -717,9 +654,10 @@ consumers_long <- consumers_long %>%
    )
   )
 
-
 Lake_name_check <- consumers_long %>% select(Lakes,updated_lake_name, lake_name_changed)
 age_check <- consumers_long %>% select(Age_numeric, Observed_Gender, Age_Category)
+rm(Lake_name_check)
+rm(age_check)
 
 ##update fish names to match OEHHA categories
 consumers_long <- consumers_long %>%
@@ -743,22 +681,8 @@ consumers_long <- consumers_long %>%
       TRUE ~ "Updated"
     ))
 
-# Identify grouped rows
-# grouped_rows <- consumers_long %>%
-#   group_by(rowID, Age_numeric, Observed_Gender, Catches_Info, Lakes) %>%
-#   filter(n() > 1) %>%  # Keep only groups with more than one row
-#   ungroup()
-# 
-# 
-# # consumers_long <- consumers_long %>%
-# #   group_by(rowID, Age_numeric, Observed_Gender, Catches_Info, Lakes) %>%
-# #   summarise(
-# #     daily_intake_per_lake = sum(daily_intake_per_lake, na.rm = TRUE), # Sum the daily intake
-# #     .groups = "drop" # Ungroup after summarising
-# #   )
-
 fish_name_check <- consumers_long %>% select(original_Catches_Info, Catches_Info, Catches_Info_changed)
-
+rm(fish_name_check)
 consumers_long <- consumers_long %>% select (-Catches_Info_changed, -original_Catches_Info)
 
 # Trim whitespace from both columns before the join
@@ -768,11 +692,8 @@ advisories_long <- advisories_long %>%
 consumers_long <- consumers_long %>%
   mutate(updated_lake_name = str_trim(updated_lake_name))
 
-##Check that advisory categories match
-anti_join_lakes <- anti_join(consumers_long, advisories_long, by=c("updated_lake_name" = "lake"))
 
-##Create separate dataset for statewide framework
-
+##Create separate dataset for statewide advisories
 statewide_adv <- advisories_long %>% filter(
   lake == "Statewide") %>%
   rename(threshold_used = county,
@@ -805,7 +726,7 @@ unmatched_rows <- unmatched_rows %>% filter(!is.na(Lakes) & Lakes != "NA")
 
 #swap name back
 consumers_long <- consumers_long_adv
-consumers_long_adv <- NULL
+rm(consumers_long_adv)
 
 write.csv(consumers_long, "consumers_long.csv", row.names = FALSE)
 
@@ -813,7 +734,7 @@ write.csv(consumers_long, "consumers_long.csv", row.names = FALSE)
 ##Fill in statewide advisories for lakes/fish where there are no lake specific consumption data
 
 summary(as.factor(consumers_long$column))
-##636 obs, 565 NAs
+##636 obs, 564 NAs
 
 #step 1: filter data
 filtered_data <- consumers_long %>% 
@@ -832,7 +753,6 @@ summary(as.factor(joined_data$statewide_column))
 ##Check columns which are still NA
 join_check <- joined_data %>% filter (is.na(statewide_column))
 ##Verified all Tilapia, or other w/ no daily intake
-
 # Keep the rows that do not meet the condition as they are
 ##Should have 71 observations (636 obs from consumers long - 565 NA)
 non_joined_data <- consumers_long %>%
@@ -871,19 +791,6 @@ consumers_long <- consumers_long %>%
 ##During data clean up - check NAs here. Explore why.
 ##Need to check code to make sure things are filtering & calculating as expected
 write.csv(consumers_long, "consumers_long.csv", , row.names = FALSE)
-
-
-
-##Remove extra columns from consumers long dataframe
-# consumers_long <- consumers_long %>%
-#   select(
-#     "rowID","Age_numeric", "Observed_Gender","Catches_Info",
-#     "Annual_Household_Income","Number_in_household", "Ethnicity",
-#     "daily_intake","number_lakes","daily_intake_per_lake",
-#     "updated_lake_name","county",
-#     "Age_Category", "column","threshold_g_day","threshold_used",
-#     "OEHHA_fish_names","avg_threshold","exceed_threshold_indiv_lake","exceed_threshold_avg_lake" 
-    
 
 
 ```

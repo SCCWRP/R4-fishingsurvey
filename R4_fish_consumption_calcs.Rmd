@@ -819,9 +819,6 @@ lakes <- list(
   "Magic Johnson Lakes" = "Magic Johnson Lakes",
   "Peck Road" = "Peck Road"
   )
-# #temporarily remove very high consumer to see how mean is affected (rowID = 46)
-# consumers_long <- consumers_long %>%
-#   filter(rowID != 46)
 
 # Initialize an empty list to store summary tables
 summary_tables <- list()
@@ -1580,7 +1577,7 @@ age <- list(
   "F18_49" = "threshold_g_day_women18_49",
   "M18_F50"= c("threshold_g_day_men18","threshold_g_day_women50")
 )
-##CHECK list of lakes is updated
+
 unique_lakes <- hh_consumers_species_long_adv %>%
   distinct(updated_lake_name) %>%
   pull(updated_lake_name)
@@ -2250,13 +2247,6 @@ lake_results_df <- do.call(rbind, results)
 
 # View the results
 print(lake_results_df)
-
-
-
-
-###
-
-
 
 #lakes <- c("Alondra park", "Legg lake", "Peck Road")
 

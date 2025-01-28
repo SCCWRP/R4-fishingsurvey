@@ -30,7 +30,9 @@ library(hrbrthemes)
 ## Import data
 ```{r ,include=FALSE}
 
-path <- c("//pacific/Toxicology/tox/Risk Assessment/Region4_Urban lakes fishers survey/Survey data/Fisher_Survey_Database_2024.xlsm")
+##Save Fisher_Survey_Database_2024.xlsm in working directory, then import
+wd <- getwd()
+path <- file.path(wd, "Fisher_Survey_Database_2024.xlsm") 
 
 excel_sheets(path)
 
@@ -43,12 +45,11 @@ colnames
 names(fisherdb_import) <- gsub(" ", "_", names(fisherdb_import))
 names(fisherdb_import)
 
-###CHECK errors when converting to numeric / factor - are we losing data by introducing NAs
 #Convert to numeric / factor
 
 fisherdb <- fisherdb_import
 
-# List of columns to check and convert
+# List of columns to convert
 columns_to_convert <- c(
   "Past_catches:_Rainbow_Trout,_times_eaten_numeric",
   "Past_catches:_Catfish,_times_eaten_numeric", 
@@ -79,7 +80,7 @@ columns_to_convert <- c(
   "Times_eaten_last_4_weeks__(Person_4)_numeric"
 )
 
-# Convert columns to numeric, check for data loss, and summarize
+# Convert columns to numeric, checks for data loss, and summarize
 for (col in columns_to_convert) {
   # Create new numeric column
   numeric_col <- paste0(col)
@@ -94,8 +95,6 @@ for (col in columns_to_convert) {
   print(summary(fisherdb[[numeric_col]]))
   
 }
-
-##After running loop, check output to make sure NAs are introduced appropriately
 ###"unknowns" converted to "NA" in numerical conversion
 ###"not surveyed" converted to "NA" in numerical conversion
 ###"no answer" converted to "NA" in numerical conversion
@@ -123,14 +122,13 @@ fisherdb <- fisherdb %>%
     ~ sapply(.x, convert_to_midpoint),
     .names = "{.col}_numeric"))
 
-##Check function performance
+##Checks function performance
 
 age_check <- fisherdb %>% select (`Age_(Person_1)`, `Age_(Person_1)_numeric`,
                                   `Age_(Person_2)`, `Age_(Person_2)_numeric`,
                                   `Age_(Person_3)`, `Age_(Person_3)_numeric`,
                                   `Age_(Person_4)`, `Age_(Person_4)_numeric`,
                                   Age, Age_numeric)
-###Check 
  
 ### Convert gender to factor
 fisherdb <- fisherdb %>%
@@ -142,7 +140,7 @@ fisherdb <- fisherdb %>%
      `Gender_(Person_4)`
  ),as.factor))
 
-###Check gender conversion
+###Checks gender conversion
 summary(fisherdb$Observed_Gender)
 summary(fisherdb$`Gender_(Person_1)`)
 summary(fisherdb$`Gender_(Person_2)`)
@@ -418,7 +416,7 @@ consumers <- fisherdb %>% filter(
                   `Past_catches:_other,_times_eaten_numeric`>0
 )
 
-##verify consumer subset ## This is solely to check the code.
+##verify consumer subset
 RT_consumers <- fisherdb %>% filter(`Past_catches:_Rainbow_Trout,_times_eaten_numeric` >0)
 nrow(RT_consumers)
 cat_consumers <- fisherdb %>% filter(`Past_catches:_Catfish,_times_eaten_numeric`>0)
@@ -459,7 +457,6 @@ consumers <- consumers %>%
   )
 
 ###Remove extra data from environment
-rm(age_check)
 rm(RT_consumers)
 rm(cat_consumers)
 rm(BG_consumers)
@@ -475,8 +472,9 @@ rm(Other_consumers)
 #Compare consumption rate to OEHHA advisories
 ```{r ,include=FALSE}
 ##import thresholds
-path <- "//pacific/Toxicology/tox/Risk Assessment/Region4_Urban lakes fishers survey/Resources/OEHHA consumption advisories/OEHHA_consumption_advisories.xlsx"
-
+##Save OEHHA_consumption_advisories.xlsx in working directory, then import
+wd <- getwd()
+path <- file.path(wd, "OEHHA_consumption_advisories.xlsx") 
 excel_sheets(path)
 advisories <-read_excel(path, sheet = "Lake advisories")
 advisories <- advisories %>% mutate(across(
@@ -750,7 +748,7 @@ joined_data <- filtered_data %>%
 summary(as.factor(joined_data$statewide_column))
 ##565 obs, 137 NAs 
 
-##Check columns which are still NA
+##Checks columns which are still NA
 join_check <- joined_data %>% filter (is.na(statewide_column))
 ##Verified all Tilapia, or other w/ no daily intake
 # Keep the rows that do not meet the condition as they are
@@ -794,9 +792,6 @@ write.csv(consumers_long, "consumers_long.csv", , row.names = FALSE)
 
 ##LOOP surveyed lakes consumption 
 ```{r ,include=FALSE}
-
-###QA this code
-
 ####This loop provides a .csv output with the number of people consuming fish from each of the surveyed lakes and a summary of their consumption of different fish species from each individual lake alone (Not including fish they may be consuming at other lakes). percent_exceed_lake provides the percent of consumers whose fish consumption at the specified lake ALONE exceeds the OEHHA lake specific or statewide consumption threshold. percent_exceed_avg provides the percent of consumers whose fish consumption both from the specified lake and other lakes exceeds the average threshold for the lakes they consume from. Therefore, if percent_exceed_lake and percent_exceed_avg are the same then threshold exceedance is driven by the specified lake. If percent_exceed_avg is greater than percent_exceed_lake then there are other lakes contributing to threshold exceedance
 
 # List of fish species to analyze
@@ -912,7 +907,7 @@ all_lakes_summary_table <- bind_rows(summary_tables)
 # Write to CSV
 write.csv(all_lakes_summary_table, "consumption_summary_surveyed_lakes.csv", row.names = FALSE)
 
-#####Check data
+
 alondra_check <- consumers_long %>%
   filter(updated_lake_name == "Alondra park")#%>%
 
@@ -1235,7 +1230,6 @@ hh_consumers_species_long <- household_consumers_long %>%
     TRUE ~ hh_sp_consumed_times
   ))%>%
   mutate(hh_sp_consumed_times = as.numeric(hh_sp_consumed_times))%>%
-###CHECK that all unique names are being captured
   mutate(hh_species_consumed= trimws(hh_species_consumed))%>%
   mutate (hh_species_consumed = case_when(
     hh_species_consumed == "Rainbow Trout" ~ "Rainbow trout",
@@ -1297,7 +1291,7 @@ mutate(hh_daily_intake_per_fish = (hh_servings_eaten*hh_sp_consumed_times*227)/2
   
    ##Separate lake data into separate columns
 separate(hh_lake, into = c("hh_lake1", "hh_lake2", "hh_lake3", "hh_lake4"), sep = ",")%>%
-##Check ##68 unique consumers ##113 rows * 4 = 452
+##68 unique consumers ##113 rows * 4 = 452
 # length(unique(hh_consumers_species_long$hh_consumerID))
 
 ###pivot long by lake and divide consumption by lake
@@ -1357,7 +1351,6 @@ hh_consumers_species_long_match <- hh_consumers_species_long %>%
   left_join(unique_lake_names_key %>%
               select(original_name, lake , county), by = c("hh_lakes" = "original_name")) %>%
   rename(updated_lake_name = lake) %>%
-  #check <- hh_consumers_species_long_match %>% select(hh_lakes, updated_lake_name, county)
   mutate(Age_Category =  case_when(
     hh_age < 18 ~ "< 18",
     hh_age >= 18 & hh_gender == "Male" ~ ">= 18",
@@ -1365,8 +1358,6 @@ hh_consumers_species_long_match <- hh_consumers_species_long %>%
     hh_age >= 50 & hh_gender == "Female" ~ ">= 50",
     .default = NA
   ))%>%
-  #check <- hh_consumers_species_long_match %>% select(hh_age, Age_Category)
-
 mutate(hh_gender_original = case_when(
   hh_gender =="Female" ~"Female",
   hh_gender == "Male"~"Male",
@@ -1431,8 +1422,6 @@ hh_consumers_species_long_adv <-hh_consumers_species_long_adv %>%
 ##Does total consumption by each individual from all lakes exceed average threshold for one lake or all lakes 
   mutate(exceed_threshold_avg_lake = exceed_threshold_indiv_lake | (hh_daily_intake_per_fish > avg_threshold))
   
-##During data clean up - check NAs here. Explore why.
-##Need to check code to make sure things are filtering & calculating as expected
 write.csv(hh_consumers_species_long_adv, "hh_consumers_long.csv", , row.names = FALSE)
 
 ```
@@ -1561,18 +1550,6 @@ write.csv(hh_all_lakes_summary_table, "hh_consumption_summary_all.csv", row.name
 
 ##hh LOOP all individual lakes
 ```{r ,include=FALSE}
-
-###household consumption from lakes surveyed and not surveyed
-# LA_county_hh_consumers <- hh_consumers_species_long_adv %>%
-#   filter(county == "Los Angeles")%>%
-#   group_by(hh_species_consumed, hh_consumerID) %>%
-#   mutate(daily_intake_LA = sum(hh_daily_intake_per_fish_per_lake))%>%
-#   mutate(avg_LAthreshold = mean(threshold_g_day)) %>%
-#   ungroup()%>%
-#   mutate(exceed_threshold_LA_lake = exceed_threshold_indiv_lake | daily_intake_LA>avg_LAthreshold)
-# 
-# datacheck <- LA_county_hh_consumers %>% select(hh_consumerID, hh_species_consumed, hh_lakes, number_lakes,hh_total_daily_intake, hh_daily_intake_per_fish, hh_daily_intake_per_fish_per_lake, threshold_g_day, threshold_used, avg_threshold, daily_intake_LA, avg_LAthreshold, exceed_threshold_LA_lake, threshold_g_day, avg_threshold, exceed_threshold_indiv_lake, exceed_threshold_avg_lake)
-
 hh_consumers_species_long_adv<- hh_consumers_species_long_adv %>%
   mutate(updated_lake_name = case_when(
     updated_lake_name == "No match" ~ "Unknown",  # Replace "No match" with "Unknown"
@@ -1611,35 +1588,6 @@ unique_lakes <- hh_consumers_species_long_adv %>%
 # Create the named list
 lakes <- setNames(as.list(unique_lakes), unique_lakes)
 
-
-# lakes <- list(
-#   "Alondra park" = "Alondra park",
-#   "Legg lake" = "Legg lake",
-#   "Peck Road" = "Peck Road",
-#   "Santa Ana River Lakes" = "Santa Ana River Lakes" ,
-#   "Lake Perris" = "Lake Perris",
-#   "Unknown"  = "Unknown"  ,
-#   "Laguna Niguel Lake" = "Laguna Niguel Lake",
-#   "Lake Skinner" = "Lake Skinner",
-#   "Irvine Lake" = "Irvine Lake" ,
-#   "Cachuma lake"  = "Cachuma lake"  ,
-#   "Hollenbeck Park Lake"  = "Hollenbeck Park Lake"  ,
-#   "Cerritos Park Lake / Don Knabe" = "Cerritos Park Lake / Don Knabe",
-#   "Crystal Lake" = "Crystal Lake" ,
-#   "El Dorado Park Lake" = "El Dorado Park Lake",
-#   "Lake Gregory Regional Park" = "Lake Gregory Regional Park",
-#   "Echo Park Lake" = "Echo Park Lake",
-#   "Lake Piru" = "Lake Piru" ,
-#   "MacArthur Park" = "MacArthur Park",
-#   "Carbon Canyon Regional Park" = "Carbon Canyon Regional Park"   ,
-#   "Tri-City Regional Park" = "Tri-City Regional Park",
-#   "Puddingstone reservoir" = "Puddingstone reservoir",
-#   "Santa Fe Dam lake"  = "Santa Fe Dam lake" ,
-#   "Kenneth Hahn/Gwen Moore Lake" = "Kenneth Hahn/Gwen Moore Lake",
-#   "Prado Dam"  = "Prado Dam"  ,
-#   "Pyramid lake"  = "Pyramid lake" 
-# )
-
 #Check number of hh consumers
 length(unique(hh_consumers_species_long_adv$hh_consumerID)) #68
 
@@ -1667,7 +1615,7 @@ for (lake_name in names(lakes)) {
         filter(updated_lake_name %in% selected_lake) %>%
         summarise(any_hh_exceeded_adv = any(exceed_threshold_indiv_lake)) %>% #Groups by hh_consumerID, filters based on selected parameters, then summarizes by assigning "TRUE" if the individual has exceeded the threshold by eating fish at lakes and false if they have not. 
         ungroup() %>%
-        filter(!is.na(any_hh_exceeded_adv)) %>% #filters out NAs so that only TRUE / FALSE values are being assessed ##CHECK NAs
+        filter(!is.na(any_hh_exceeded_adv)) %>% #filters out NAs so that only TRUE / FALSE values are being assessed
         summarise(percent_exceed = round((sum(any_hh_exceeded_adv) / n()) * 100)) %>%
         mutate(lakes = lake_name) %>%  # Add a column for the label
         mutate(fish = fish_name) %>%
@@ -1785,7 +1733,7 @@ summary(Peck$Age_numeric)
 summary(Magic_Johnson$Age_numeric)
 
 
-# Check that each rowID has only ONE unique Age_numeric and ONE unique Observed_Gender value
+# Checks that each rowID has only ONE unique Age_numeric and ONE unique Observed_Gender value
 check_consistency <- consumers_long %>%
   group_by(rowID) %>%
   summarise(
@@ -1833,7 +1781,7 @@ hh_age <- hh_consumers_species_long_adv %>%
   summarize(sum(hh_daily_intake_per_fish_per_lake))%>%
   ungroup()
 
-# Check for duplicate rows based on fisherID and household_member
+# Checks for duplicate rows based on fisherID and household_member
 duplicate_check <- hh_age %>%
   group_by(fisherID, household_member) %>%
   filter(n() > 1) %>%  # Filter groups with more than 1 row
@@ -2170,7 +2118,7 @@ parts_consumed <- parts_consumed %>%
       TRUE ~ NA_character_  # Use NA_character_ for character NA
     )
   )
-# Check for mismatched rows where times_eaten or parts_eaten is NA
+# Checks for mismatched rows where times_eaten or parts_eaten is NA
 missing_matches <- parts_consumed %>%
   filter(Catches_Info %in% c("Rainbow trout", "Catfish", "Bluegill", "Common Carp", "Bass", "Crappie", "Tilapia", "Other") &
            (is.na(times_eaten) | is.na(parts_eaten)))
@@ -2504,7 +2452,6 @@ cooking_method_counts_combined <- bind_rows(cooking_method_counts_list)
 write.csv(cooking_method_counts_combined, "cooking_methods.csv", row.names = FALSE)
 
 ##Total number of people in total_people_list should be 25 @Legg, 15@Alondra, 3@Peck
-#check 
 cooking_methods_long_x_lake <- cooking_methods_long %>%
     filter(updated_lake_name == "Alondra park") %>%  # Filter for the current lake
     distinct(rowID, cooking_method)  # Ensure each cooking method is counted once per rowID
@@ -2515,9 +2462,6 @@ cooking_methods_long_x_lake <- cooking_methods_long %>%
 ##Fish consumption by income regression analysis
 
 ```{r ,include=FALSE}
-##COME BACK TO QA
-###address missing points & then rerun
-
 Surveyed_lakes_reported_income <- consumers_long %>%
   filter(updated_lake_name %in% c("Alondra park", "Legg lake", "Peck Road"))%>%
   distinct(rowID, .keep_all = TRUE)

@@ -1707,7 +1707,7 @@ fisher_hist <-ggplot(fisherdb, aes(x = Age_numeric, fill = Observed_Gender)) +
   labs(
     title = "",
     x = "Age",
-    y = "Frequency",
+    y = "Number of consumers",
     fill = "Gender"
   ) +
   scale_fill_manual(values = c("#ff8900","#15607a","gray"))+
@@ -1756,7 +1756,7 @@ fisher_consumer_hist <- ggplot(fish_consumers, aes(x = Age_numeric, fill = Obser
   labs(
     title = "",
     x = "Age",
-    y = "Frequency",
+    y = "Number of consumers",
     fill = "Gender"
   ) +
   scale_fill_manual(values = c("#ff8900","#15607a"))+
@@ -1792,7 +1792,7 @@ hh_hist <-ggplot(hh_age, aes(x = hh_age, fill = hh_gender_original)) +
   labs(
     title = "",
     x = "Age",
-    y = "Frequency",
+    y = "Number of consumers",
     fill = "Gender"
   ) +
   scale_fill_manual(values = c("#ff8900","#15607a","gray"))+
@@ -1807,9 +1807,9 @@ hh_hist
 ####Export
 
 stacked_hist <- fisher_consumer_hist + 
-  ggtitle("Consumers (fishers)") + 
+  ggtitle("Fishers") + 
   hh_hist + 
-  ggtitle("Consumers (household)") + 
+  ggtitle("Household") + 
   plot_layout(ncol = 1)  # Stack vertically
 
 # Print the combined plot
@@ -2753,3 +2753,43 @@ write.csv(ethnicity_counts_combined, file="ethnicity_counts.csv", row.names = FA
 
 ```
 
+##Subsistence fishers
+```{r}
+
+##Analysis to look at frequency at which people are consuming fish + minimum consumption amount
+
+subsistence_consumers <- consumers_long %>%
+    mutate(times_per_month = case_when(
+    Catches_Info == "Rainbow trout" ~ `Past_catches:_Rainbow_Trout,_times_eaten_numeric`,
+    Catches_Info == "Catfish" ~ `Past_catches:_Catfish,_times_eaten_numeric`,
+    Catches_Info == "Common carp" ~ `Past_catches:_Common_Carp,_times_eaten_numeric`,
+    Catches_Info == "Crappie" ~ `Past_catches:_Crappie,_times_eaten_numeric` ,
+    Catches_Info == "Striped bass" ~ `Past_catches:_other,_times_eaten_numeric`,
+    Catches_Info == "Tilapia" ~ `Past_catches:_Tilapia,_times_eaten_numeric`,
+    Catches_Info == "Sunfish species" ~ `Past_catches:_Bluegill,_times_eaten_numeric`,
+    Catches_Info == "Black bass species" ~ `Past_catches:_Bass,_times_eaten_numeric`,
+    .default = NA))
+
+write.csv(filter_subsistence_consumers, file = "subsistence_consumers.csv", row.names = FALSE)
+
+length(unique(subsistence_consumers$rowID))
+
+
+filter_subsistence_consumers <- subsistence_consumers %>%
+  filter(Lakes %in% c("Alondra park", "Legg lake", "Magic Johnson Lakes", "Peck Road"), )
+  
+
+length(unique(filter_subsistence_consumers$rowID)) 
+
+filter_subsistence_consumers <- filter_subsistence_consumers %>%
+  group_by(rowID, Lakes) %>%
+  summarise(
+    total_daily_intake = sum(daily_intake_per_lake, na.rm = TRUE),
+    times_per_month = sum(times_per_month)
+  ) %>%
+  ungroup()
+
+  
+  
+
+```

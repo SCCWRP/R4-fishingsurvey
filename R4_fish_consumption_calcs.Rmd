@@ -2782,7 +2782,7 @@ filter_subsistence_consumers <- subsistence_consumers %>%
 length(unique(filter_subsistence_consumers$rowID)) 
 
 filter_subsistence_consumers <- filter_subsistence_consumers %>%
-  group_by(rowID, Lakes) %>%
+  group_by(rowID, Lakes,Annual_Household_Income) %>%
   summarise(
     total_daily_intake = sum(daily_intake_per_lake, na.rm = TRUE),
     times_per_month = sum(times_per_month)

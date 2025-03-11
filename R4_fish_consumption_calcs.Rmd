@@ -2782,14 +2782,38 @@ filter_subsistence_consumers <- subsistence_consumers %>%
 length(unique(filter_subsistence_consumers$rowID)) 
 
 filter_subsistence_consumers <- filter_subsistence_consumers %>%
-  group_by(rowID, Lakes,Annual_Household_Income) %>%
+  group_by(rowID, Age_numeric, Observed_Gender, Ethnicity, Lakes, Annual_Household_Income) %>%
   summarise(
     total_daily_intake = sum(daily_intake_per_lake, na.rm = TRUE),
     times_per_month = sum(times_per_month)
   ) %>%
   ungroup()
 
+##Looking at household information
+sub_hh <- consumers %>%
+  mutate(rowID = 1:nrow(.)) %>%
+  # Step 1: Gather the relevant columns into long format
+  pivot_longer(
+    cols = starts_with("Past_catches:") & ends_with("times_eaten,_where"),
+    names_to = "Catches_Info",
+    values_to = "Lakes"
+  ) %>%
+  #Step 2: Separate the lake names into individual rows
+  separate_rows(Lakes, sep = ",") %>%
+  mutate(Catches_Info = gsub("(Past_catches:_)|(,.*)", "", Catches_Info)) %>%
+  mutate(Catches_Info = gsub("_", " ", Catches_Info)) %>%
+  mutate(Lakes = trimws(Lakes))
+
+sub_hh_10 <- sub_hh%>%
+  filter(rowID %in% c(10))
   
-  
+sub_hh_46 <- sub_hh%>%
+  filter(rowID %in% c(46))
+
+sub_hh_69 <- sub_hh%>%
+  filter(rowID %in% c(69))
+
+sub_hh_39 <- sub_hh%>%
+  filter(rowID %in% c(39))
 
 ```

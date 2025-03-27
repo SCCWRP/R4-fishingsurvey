@@ -2789,7 +2789,7 @@ filter_subsistence_consumers <- filter_subsistence_consumers %>%
   ) %>%
   ungroup()
 
-##Looking at household information
+##Looking at household information for fishers consuming at subsistence levels
 sub_hh <- consumers %>%
   mutate(rowID = 1:nrow(.)) %>%
   # Step 1: Gather the relevant columns into long format
@@ -2815,5 +2815,13 @@ sub_hh_69 <- sub_hh%>%
 
 sub_hh_39 <- sub_hh%>%
   filter(rowID %in% c(39))
+
+#Subsistence consumption by household members
+# 
+# filter_subsistence_hh <- hh_consumers_species_long_adv %>%
+#   group_by(fisherID, household_member,Relation_to_fisher, hh_age, hh_gender, hh_total_daily_intake ,hh_lakes, Annual_Household_Income, Ethnicity) %>%
+#   summarise(
+#     total_daily_intake = mean(hh_total_daily_intake, na.rm = TRUE),
+#   )
 
 ```
